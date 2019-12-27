@@ -1,5 +1,4 @@
-
+###自定义配置用于是否开启多线程任务调度
 schedule:
   pool:
-    enable:
-      true
+    enable: true

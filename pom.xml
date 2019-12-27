@@ -11,6 +11,10 @@
 
     <modules>
         <module>schedule</module>
+        <module>config</module>
+        <module>condition</module>
+        <module>swagger2</module>
+        <module>test</module>
     </modules>
 
     <parent>

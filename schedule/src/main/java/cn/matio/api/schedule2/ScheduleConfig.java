@@ -33,7 +33,7 @@ protected void scheduleTasks() {
 自定义线程池:新增一个配置类，实现SchedulingConfigurer接口。重写configureTasks方法，通过taskRegistrar设置自定义线程池
  */
 @Component
-@ConditionalOnProperty(name = "schedule.pool.enable", value = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "schedule.pool.enable", havingValue = "true", matchIfMissing = true)
 public class ScheduleConfig implements SchedulingConfigurer {
 
     @Override
