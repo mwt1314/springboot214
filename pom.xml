@@ -15,6 +15,11 @@
         <module>condition</module>
         <module>swagger2</module>
         <module>test</module>
+        <module>rabbitmq</module>
+        <module>mongodb</module>
+        <module>thymeleaf</module>
+        <module>import</module>
+        <module>redis</module>
     </modules>
 
     <parent>
@@ -49,6 +54,18 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <!--去除spring自带的logback-->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
