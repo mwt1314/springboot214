@@ -20,6 +20,7 @@
         <module>thymeleaf</module>
         <module>import</module>
         <module>redis</module>
+        <module>thread</module>
     </modules>
 
     <parent>
