@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class SwaggerController {
 
     @GetMapping("/dev/swagger")
-    @RequiresPermissions("/dev/swagger")
     public String index(){
         return "redirect:/swagger-ui.html";
     }
