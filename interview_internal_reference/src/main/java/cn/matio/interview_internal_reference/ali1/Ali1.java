@@ -6,6 +6,8 @@ package cn.matio.interview_internal_reference.ali1;
  * @date 2019/12/31
  */
 
+import org.junit.jupiter.api.Test;
+
 import java.util.Random;
 import java.util.Stack;
 
@@ -33,13 +35,15 @@ public class Ali1 {
     }
 
     public static void main(String[] args) {
+        //生成单向链表
         ListNode<Integer> head = headLink();
         //正序遍历单向链表
         positivePrint(head);
         //单向链表逆序输出
-        reverse(head);
+    //    reverse(head);
+        head = reverse1(head);
         positivePrint(head);
-        reverse2(head);
+        positivePrint(reverse2(head));
     }
 
     //正序遍历单向链表
@@ -54,10 +58,45 @@ public class Ali1 {
         }
     }
 
-    //将单向链表逆序，改变原链表，参考https://blog.csdn.net/alpgao/article/details/86509265
-    private static void reverse(ListNode head) {
+    // 在不使用额外存储节点的情况下使一个单链表的所有节点逆序
+    // 循环式 https://blog.csdn.net/xiao_ma_CSDN/article/details/80550092
+    private static ListNode reverse1(ListNode head) {
         if (head == null || head.next == null) {
-            return;
+            return head;
+        }
+        ListNode curHead = head, prev = null, next = null;
+        while (curHead != null) {
+            //记录下当前节点的下一个节点
+            next = curHead.next;
+            //逆序
+            curHead.next = prev;
+            //后移
+            prev = curHead;
+            //后移
+            curHead = next;
+        }
+        return prev;
+    }
+
+    //在不使用额外存储节点的情况下使一个单链表的所有节点逆序
+    //递归方式https://blog.csdn.net/xiao_ma_CSDN/article/details/80550092
+    private static ListNode reverse2(ListNode head) {
+        if (head == null || head.next == null) {
+            return head;
+        }
+        ListNode newHead = reverse2(head.next);
+        //另当前节点的下一个节点指向当前节点，形成闭合回路
+        head.next.next = head;
+        //断开闭合回路，实现逆序
+        head.next = null;
+        return newHead;
+    }
+
+
+    //将单向链表逆序，改变原链表，参考https://blog.csdn.net/alpgao/article/details/86509265
+   /* private static ListNode reverse(ListNode head) {
+        if (head == null || head.next == null) {
+            return head;
         }
         ListNode p = head;
         ListNode q = p.next;
@@ -69,13 +108,13 @@ public class Ali1 {
             p = q; //往后移
             q = temp; //往后移
         }
-        head.next = null; //防止head和第一个节点闭环
-        head = p; //p就是新的头节点
+        head.next = p; //防止head和第一个节点闭环
+    //    head = p; //p就是新的头节点
 
-    }
+    }*/
 
     //利用栈的先入后出特性实现倒序打印，并没有改变原链表
-    private static void reverse2(ListNode head) {
+    private static void reverse3(ListNode head) {
         ListNode newNode = head;
         Stack<ListNode> stack = new Stack<>(); //利用栈的FILO特性
         while (newNode != null) {
