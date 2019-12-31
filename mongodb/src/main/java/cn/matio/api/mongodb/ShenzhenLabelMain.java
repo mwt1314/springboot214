@@ -1,5 +1,13 @@
 package cn.matio.api.mongodb;
 
+import com.mongodb.MongoClient;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MapReduceIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.result.UpdateResult;
 import org.bson.BsonValue;
 import org.springframework.data.mongodb.core.mapping.Document;
 

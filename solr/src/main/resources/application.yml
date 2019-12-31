@@ -1,0 +1,12 @@
+#这里使用的是yml的配置模式
+spring:
+  application:
+    name: solr
+  data:
+    solr:
+      #配置单机版 单机版solr地址+实例名
+      host: http://127.0.0.1:8080/solr
+      #配置集群版 zookeeper的地址
+      zk-host: 192.168.1.133:2181,192.168.1.134:2182,192.168.1.135:2183
+server:
+  port: 8081

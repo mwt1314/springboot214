@@ -21,6 +21,8 @@
         <module>import</module>
         <module>redis</module>
         <module>thread</module>
+        <module>solr</module>
+        <module>elasticsearch</module>
     </modules>
 
     <parent>
@@ -109,6 +111,12 @@
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
             <version>${jsoup.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.5</version>
         </dependency>
 
     </dependencies>
