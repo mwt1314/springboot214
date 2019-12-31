@@ -1,0 +1,6 @@
+批量杀进程https://www.cnblogs.com/abclife/p/7380397.html
+使用awk批量杀进程的命令：
+ps -ef | grep firefox | grep -v grep | awk '{print "kill -9 "$2}'|sh
+
+使用cut批量杀进程的命令：
+ps -ef | grep firefox | grep -v grep | cut -c 9-15 | xargs kill -9

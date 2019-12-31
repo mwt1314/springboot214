@@ -23,6 +23,8 @@
         <module>thread</module>
         <module>solr</module>
         <module>elasticsearch</module>
+        <module>interview_internal_reference</module>
+        <module>linux</module>
     </modules>
 
     <parent>
