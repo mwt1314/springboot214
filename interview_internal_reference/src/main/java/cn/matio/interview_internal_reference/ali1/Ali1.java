@@ -14,11 +14,10 @@ import java.util.Stack;
 /**
  * 如何实现一个高效的单向链表逆序输出
  * https://github.com/0voice/interview_internal_reference/blob/master/01.%E9%98%BF%E9%87%8C%E7%AF%87/1.1.1%20%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E9%AB%98%E6%95%88%E7%9A%84%E5%8D%95%E5%90%91%E9%93%BE%E8%A1%A8%E9%80%86%E5%BA%8F%E8%BE%93%E5%87%BA%EF%BC%9F.md
- *
+ * <p>
  * 知识点：创建单向链表的两种方式 https://blog.csdn.net/alpgao/article/details/86509265
  * 1.头插法：将新形成的节点的下一个赋值为header,再把新形成的节点地址传给header即将header向前移动
  * 2.尾插法：相对于头插法有些许不同 因为要返回头 头不能动 所以需要一个tailer来记录最后一个值 tailer右移
- *
  */
 public class Ali1 {
 
@@ -40,9 +39,10 @@ public class Ali1 {
         //正序遍历单向链表
         positivePrint(head);
         //单向链表逆序输出
-    //    reverse(head);
+        //    reverse(head);
         head = reverse1(head);
         positivePrint(head);
+
         positivePrint(reverse2(head));
     }
 
@@ -77,6 +77,7 @@ public class Ali1 {
         }
         return prev;
     }
+
 
     //在不使用额外存储节点的情况下使一个单链表的所有节点逆序
     //递归方式https://blog.csdn.net/xiao_ma_CSDN/article/details/80550092
@@ -125,6 +126,31 @@ public class Ali1 {
         while (stack.size() > 0) {
             newNode = stack.pop(); //出栈
             System.out.print(newNode.val + "->");
+        }
+    }
+
+    private static void reverseLinkedList(ListNode head) {
+        if (head == null || head.next == null) {
+            return;
+        }
+        ListNode curNode = head, next = null;
+        Stack<ListNode> stack = new Stack<>();
+        while (curNode != null) {
+            //将当前节点入栈
+            stack.push(curNode);
+            //找到next节点
+            next = curNode.next;
+            //断开下一个节点
+            curNode.next = null;
+            //后移
+            curNode = next;
+        }
+
+        head = stack.pop();
+        curNode = head;
+        while (!stack.isEmpty()) {
+            curNode.next = stack.pop();
+            curNode = curNode.next;
         }
     }
 
