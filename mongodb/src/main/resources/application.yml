@@ -1,12 +1,14 @@
-
 server:
   port: 8031
 
 spring:
   application:
-    name: spirng-boot-mongodb
+    name: springboot-mongodb
   data:
     mongodb:
-      host: localhost   #同127.0.0.1
-      port: 27017
-      database: test    #指定操作的数据库
+      #连接mongodb集群，如果db不存在此时并不会创建
+      uri: mongodb://192.168.1.133:27017,192.168.1.134:27017,192.168.1.135:27017
+      database: springboot-db
+    solr:
+      #连接solr集群
+      zk-host: 192.168.1.133:2181;192.168.1.134:2181;192.168.1.135:2181

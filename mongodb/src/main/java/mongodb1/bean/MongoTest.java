@@ -1,4 +1,4 @@
-package cn.matio.api.mongodb;
+package mongodb1.bean;
 
 import lombok.Data;
 

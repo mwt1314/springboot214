@@ -1,0 +1,10 @@
+topinfo:
+  mongodb:
+    base:
+      #  mongos的地址和端口
+      uri: mongodb://192.168.1.133:20000,192.168.1.134:20000,192.168.1.135:20000
+      database: topinfo_base
+    warn:
+      #  mongos的地址和端口
+      uri: mongodb://192.168.1.133:20000,192.168.1.134:20000,192.168.1.135:20000
+      database: topinfo_warn

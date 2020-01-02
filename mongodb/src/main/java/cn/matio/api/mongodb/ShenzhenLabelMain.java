@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 @SuppressWarnings("unused")
 public class ShenzhenLabelMain {
 
-    private static MongoClient client = new MongoClient(new ServerAddress("192.168.218.133", 27017));
+   /* private static MongoClient client = new MongoClient(new ServerAddress("192.168.218.133", 27017));
     // 数据库或集合不存在都会创建
     private static MongoCollection<Document> collection = client.getDatabase("sz_label").getCollection("sz_label_collection");
 
@@ -139,5 +139,5 @@ public class ShenzhenLabelMain {
     }
 
     private static String[] telephone = new String[]{""};
-    private static String[] desc = new String[]{"", "", ""};
+    private static String[] desc = new String[]{"", "", ""};*/
 }
