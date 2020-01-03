@@ -1,0 +1,158 @@
+openjdk下载地址：http://hg.openjdk.java.net/
+openJDK之如何下载各个版本的openJDK源码：https://www.cnblogs.com/haimishasha/p/9909055.html
+
+锁
+1.悲观锁：总是假设最坏的情况，每次拿数据都认为别人会修改数据，所以要加锁，别人只能等待，直到我释放锁才能拿到锁；(共享资源每次只给一个线程使用，其它线程阻塞，用完后再把资源转让给其它线程)
+数据库的行锁、表锁、读锁、写锁都是这种方式。java中的synchronized和Lock的实现类也是悲观锁的思想
+数据库级别悲观锁：采用的数据库内部的锁机制，一个典型的倚赖数据库的悲观锁调用：select * from sys_user where name=”张三” for update;
+
+
+2.乐观锁：总是假设最好的情况，每次拿数据都认为别人不会修改数据，所以不会加锁，但是更新的时候，会判断在此期间有没有人修改过；
+乐观锁一般会使用版本号机制或CAS算法实现
+2.1版本号机制：一般是在数据表中加上一个数据版本号version字段，表示数据被修改的次数，当数据被修改时，version值会加一。
+              当线程A要更新数据值时，在读取数据的同时也会读取version值，在提交更新时，若刚才读取到的version值为当前数据库中的version值相等时才更新，
+              否则重试更新操作，直到更新成功
+2.2CAS算法：Compare And Swap无锁算法，即不使用锁的情况下实现多线程之间的变量同步，也就是在没有线程被阻塞的情况下实现变量的同步，所以也叫非阻塞同步（Non-blocking Synchronization）
+
+乐观锁和悲观锁的应用场景：
+乐观锁适用于读多写少的情况，因为不加锁直接读可以让系统的性能大幅度的提高
+悲观锁适用于写多读少的情况，因为等待到锁被释放后，可以立即获得锁进行操作
+
+CAS与synchronized的使用情景
+CAS适用于写比较少的情况下（多读场景，冲突一般较少），
+synchronized适用于写比较多的情况下（多写场景，冲突一般较多）
+
+对于资源竞争较少（线程冲突较轻）的情况，使用synchronized同步锁进行线程阻塞和唤醒切换以及用户态内核态间的切换操作额外浪费消耗cpu资源；而CAS基于硬件实现，不需要进入内核，不需要切换线程，操作自旋几率较少，因此可以获得更高的性能。
+对于资源竞争严重（线程冲突严重）的情况，CAS自旋的概率会比较大，从而浪费更多的CPU资源，效率低于synchronized。
+补充： Java并发编程这个领域中synchronized关键字一直都是元老级的角色，很久之前很多人都会称它为 “重量级锁” 。但是，在JavaSE 1.6之后进行了主要包括为了减少获得锁和释放锁带来的性能消耗而引入的 偏向锁 和 轻量级锁 以及其它各种优化之后变得在某些情况下并不是那么重了。synchronized的底层实现主要依靠 Lock-Free 的队列，基本思路是 自旋后阻塞，竞争切换后继续竞争锁，稍微牺牲了公平性，但获得了高吞吐量。在线程冲突较少的情况下，可以获得和CAS类似的性能；而线程冲突严重的情况下，性能远高于CAS。
+
+eg：
+//悲观锁用synchronized实现
+public synchronized void test() {
+
+}
+悲观锁用lock实现
+Lock lock = new ReentrantLock();
+public void testLock() {
+    lock.lock();
+    //业务代码
+    lock.unlock();
+}
+
+//乐观锁
+AtomicInteger ai = new AtomicInteger();
+public void testCAS(){
+    ai.getAndIncrement();
+}
+悲观锁都是加锁来保证资源的同步，那为什么乐观锁没有加锁却也能实现资源的同步呢?
+乐观锁最主要的实现方式是CAS算法：Compare And Swap:旧值 期望值 新值（当旧值等于期望值时，替换新值）
+步骤1：某时刻a获取内存中的新值
+步骤2：下一时刻b获取内存中的新值，如果a时刻的值和b时刻的值相等，那么认为没有被修改，直接替换，否则重复步骤2
+CAS源码：
+public class AtomicInteger {
+    private static final Unsafe unsafe = Unsafe.getUnsafe();
+
+    //指类中相应字段在该类的偏移量
+    //在这里具体即是指value这个字段在AtomicInteger类的内存中相对于该类首地址的偏移量
+    private static final long valueOffset;
+
+    //求出value这个字段的偏移量
+    static {
+        try {
+            valueOffset = unsafe.objectFieldOffset(AtomicInteger.class.getDeclaredField("value"));
+        } catch (Exception ex) { throw new Error(ex); }
+    }
+
+    //volatile保证在多线程中value的值时可见的，任何一个线程修改了value的值，都会被立即回写到主内存中
+    //保证了可见性，有序性（防止指令重排），不保证原子性
+    private volatile int value;
+
+    public final int getAndIncrement() {
+        return unsafe.getAndAddInt(this, valueOffset, 1);
+    }
+
+    public final boolean compareAndSet(int expect, int update) {
+        return unsafe.compareAndSwapInt(this, valueOffset, expect, update);
+    }
+
+}
+
+public final class Unsafe {
+
+    public final int getAndAddInt(Object obj, long valueOffset, int increment) {
+        int oldValue;
+        do {
+            oldValue = this.getIntVolatile(obj, valueOffset);
+        } while(!this.compareAndSwapInt(obj, valueOffset, oldValue, oldValue + increment));
+        return oldValue;
+    }
+
+    /**
+     * this: 需要修改的对象
+     * valueOffset：内存中相对于该类首地址的偏移量
+     * expect：期望值
+     * update：新值
+     */
+    public final native boolean compareAndSwapInt(Object obj, long valueOffset, int expect, int update);
+
+    public native int getIntVolatile(Object obj, long valueOffset);
+
+}
+
+代码举例：
+    //共享变量
+    static AtomicInteger ai = new AtomicInteger(0);
+    public static void main(String[] args) throws Exception {
+        CountDownLatch count = new CountDownLatch(10);
+        for (int i = 0; i < 10; i++) {
+            new Thread(() -> {ai.getAndIncrement(); count.countDown();}).start();
+        }
+        count.await();
+        System.out.println(ai.get());
+    }
+
+CAS问题：
+1.ABA问题：因为CAS需要在操作值的时候检查下值有没有发生变化，如果没有发生变化则更新，但是如果一个值原来是A，变成了B，又变成了A，
+          那么使用CAS进行检查时会发现它的值没有发生变化，但是实际上却变化了。ABA问题的解决思路就是使用版本号。
+          在变量前面追加上版本号，每次变量更新的时候把版本号加一，那么A-B-A 就会变成1A-2B-3A
+2.循环时间开销大：自旋CAS如果长时间不成功，会给CPU带来非常大的执行开销（时刻a的内存值和时刻b的内存值比较，如果相等则更新，否则一直循环）
+3.只能保证一个共享变量的原子操作：
+
+
+JDK1.6对synchronized关键字做了很多优化，包括自旋锁、适应性自旋锁、锁消除、锁粗化、偏向锁、轻量级锁等技术来减少锁操作的开销
+
+
+自旋锁：自旋锁，就是让某线程进入已被其它线程占用的同步代码时等待一段时间，不会被立即挂起，看持有锁的线程是否会很快释放锁。这里等待的方式就是执行一段无意义的循环
+适应性自旋锁：自旋的时间（次数）不再固定，而是由前一次在同一个锁上的自旋时间及锁的拥有者的状态来决定。
+            如果在同一个锁对象上，自旋等待刚刚成功获得过锁，并且持有锁的线程正在运行中，那么虚拟机就会认为这次自旋也是很有可能再次成功，进而它将允许自旋等待持续相对更长的时间。
+            如果对于某个锁，自旋很少成功获得过，那在以后尝试获取这个锁时将可能省略掉自旋过程，直接阻塞线程，避免浪费处理器资源
+
+
+为什么会有自旋锁：阻塞或唤醒一个线程需要操作系统切换cpu状态来完成，这种状态的转换需要耗费处理器时间，如果同步代码块的处理逻辑过于简单，那么有可能状态转换的时间要比用户代码执行的时间要长。
+                所以为了让线程在短暂的等待之后就要执行下去，需要自旋，在自旋完成后，前面锁定了同步资源的线程释放锁，那么当前线程就不需要阻塞或唤醒就可以获取同步资源，从而避免了线程切换的开销，这就是自旋锁。
+自旋锁的缺点：自旋等待虽然避免了线程切换的开销，但是它要占用cpu时间片。如果锁被占用的时间很短，自旋等待的效果就会很好，反之如果锁被占用的时间很长，那么自旋的线程只会白白浪费处理器资源。
+            所以，自旋等待的时间必须要有一定的限度，如果自旋超过了限定次数（默认是10次，可以使用-XX:PreBlockSpin来更改）没有成功获得锁，就应当挂起线程。
+自旋锁在JDK1.4.2中引入，使用-XX:+UseSpinning来开启。JDK6中变为默认开启，并且引入了自适应的自旋锁（适应性自旋锁）
+
+自旋锁中有三种常见的锁形式：TicketLock、CLHlock和MCSlock
+
+锁的四种状态：
+无锁：
+轻量级锁：
+重量级锁：
+偏向锁：
+
+AQS:AbstractQueuedSynchronizer简称
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,5 +1,8 @@
 package cn.matio.interview_internal_reference.ali1;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 /**
  * 01.阿里篇/1.1.3 给定一个二叉搜索树(BST)，找到树中第 K 小的节点.md
  * https://github.com/0voice/interview_internal_reference/blob/master/01.%E9%98%BF%E9%87%8C%E7%AF%87/1.1.3%20%E7%BB%99%E5%AE%9A%E4%B8%80%E4%B8%AA%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91(BST)%EF%BC%8C%E6%89%BE%E5%88%B0%E6%A0%91%E4%B8%AD%E7%AC%AC%20K%20%E5%B0%8F%E7%9A%84%E8%8A%82%E7%82%B9.md
@@ -34,6 +37,7 @@ package cn.matio.interview_internal_reference.ali1;
  * 分析思路2：二叉搜索树按照中序遍历的顺序打印出来正好就是排序好的顺序，所以，按照中序遍历顺序找到第k个结点就是结果
  *
  */
+@JsonNaming(value = PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class Ali3 {
 
     //二叉树定义

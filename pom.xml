@@ -25,6 +25,8 @@
         <module>interview_internal_reference</module>
         <module>linux</module>
         <module>javanio</module>
+        <module>java-sort</module>
+        <module>lock</module>
     </modules>
 
     <parent>

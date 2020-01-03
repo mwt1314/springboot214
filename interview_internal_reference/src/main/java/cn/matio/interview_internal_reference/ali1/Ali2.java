@@ -31,8 +31,8 @@ public class Ali2 {
     private static double newton(double x) {
         if (Math.abs(x * x - 2) > EPSILON) {
             return newton(x - (x * x - 2) / (2 * x));
-        } else
-            return x;
+        }
+        return x;
     }
 
 }

@@ -1,13 +1,5 @@
 package cn.matio.interview_internal_reference.ali1;
 
-/**
- * @author mawt
- * @description
- * @date 2019/12/31
- */
-
-import org.junit.jupiter.api.Test;
-
 import java.util.Random;
 import java.util.Stack;
 
@@ -15,7 +7,14 @@ import java.util.Stack;
  * 如何实现一个高效的单向链表逆序输出
  * https://github.com/0voice/interview_internal_reference/blob/master/01.%E9%98%BF%E9%87%8C%E7%AF%87/1.1.1%20%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E9%AB%98%E6%95%88%E7%9A%84%E5%8D%95%E5%90%91%E9%93%BE%E8%A1%A8%E9%80%86%E5%BA%8F%E8%BE%93%E5%87%BA%EF%BC%9F.md
  * <p>
- * 知识点：创建单向链表的两种方式 https://blog.csdn.net/alpgao/article/details/86509265
+ * 知识点：
+ * 链表是一种物理存储结构上非连续、非顺序的存储结构，数据元素的逻辑顺序是通过链表中的指针链接次序实现的
+ *
+ * 链表的特点是什么？
+ * 获取数据麻烦，需要遍历查找，比数组慢
+ * 方便插入、删除
+ *
+ * 创建单向链表的两种方式 https://blog.csdn.net/alpgao/article/details/86509265
  * 1.头插法：将新形成的节点的下一个赋值为header,再把新形成的节点地址传给header即将header向前移动
  * 2.尾插法：相对于头插法有些许不同 因为要返回头 头不能动 所以需要一个tailer来记录最后一个值 tailer右移
  */
@@ -23,7 +22,7 @@ public class Ali1 {
 
     private static Random random = new Random();
 
-    public static class ListNode<T> {
+    private static class ListNode<T> {
         T val;
 
         ListNode<T> next;
@@ -34,7 +33,7 @@ public class Ali1 {
     }
 
     public static void main(String[] args) {
-        //生成单向链表
+        //头插法生成单向链表
         ListNode<Integer> head = headLink();
         //正序遍历单向链表
         positivePrint(head);
@@ -78,7 +77,6 @@ public class Ali1 {
         return prev;
     }
 
-
     //在不使用额外存储节点的情况下使一个单链表的所有节点逆序
     //递归方式https://blog.csdn.net/xiao_ma_CSDN/article/details/80550092
     private static ListNode reverse2(ListNode head) {
@@ -92,27 +90,6 @@ public class Ali1 {
         head.next = null;
         return newHead;
     }
-
-
-    //将单向链表逆序，改变原链表，参考https://blog.csdn.net/alpgao/article/details/86509265
-   /* private static ListNode reverse(ListNode head) {
-        if (head == null || head.next == null) {
-            return head;
-        }
-        ListNode p = head;
-        ListNode q = p.next;
-        ListNode temp;
-        while (q != null) {
-            temp = q.next; //记下q的下一个节点
-        //    p.next = null; //不能这么写，画图就明白了
-            q.next = p; //正序不要了，改为逆序
-            p = q; //往后移
-            q = temp; //往后移
-        }
-        head.next = p; //防止head和第一个节点闭环
-    //    head = p; //p就是新的头节点
-
-    }*/
 
     //利用栈的先入后出特性实现倒序打印，并没有改变原链表
     private static void reverse3(ListNode head) {
@@ -129,7 +106,8 @@ public class Ali1 {
         }
     }
 
-    private static void reverseLinkedList(ListNode head) {
+    //链表入栈
+    private static void reverse4(ListNode head) {
         if (head == null || head.next == null) {
             return;
         }
