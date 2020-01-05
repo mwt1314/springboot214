@@ -16,20 +16,25 @@ public abstract class AQS extends BaseAQS implements Serializable {
 
     }
 
+    //Node结点是对每一个等待获取资源的线程的封装，其包含了需要同步的线程本身及其等待状态
     static final class Node {
 
         static final Node SHARED = new Node();
 
         static final Node EXCLUSIVE = null;
 
+        //表示当前结点已取消调度。当timeout或被中断（响应中断的情况下），会触发变更为此状态，进入该状态后的结点将不会再变化
         static final int CANCELLED = 1;
-
+        //表示后继结点在等待当前结点唤醒。后继结点入队时，会将前继结点的状态更新为SIGNAL
         static final int SIGNAL = -1;
-
+        //表示结点等待在Condition上，当其他线程调用了Condition的signal()方法后，CONDITION状态的结点将从等待队列转移到同步队列中，等待获取同步锁
         static final int CONDITION = -2;
-
+        //新结点入队时的默认状态
         static final int PROPAGATE = -3;
 
+        //表示当前Node结点的等待状态
+        //共有5种取值CANCELLED、SIGNAL、CONDITION、PROPAGATE、0新结点入队时的默认状态
+        //负值表示结点处于有效等待状态，而正值表示结点已被取消。所以源码中很多地方用>0、<0来判断结点的状态是否正常
         volatile int waitStatus;
 
         volatile Node prev;
@@ -176,21 +181,28 @@ public abstract class AQS extends BaseAQS implements Serializable {
         try {
             //标记等待过程中是否被中断过
             boolean interrupted = false;
+            //cas自旋
             for (; ; ) {
+                //拿到前驱节点
                 final Node p = node.predecessor();
+                //如果前驱是head，即该结点已成老二，那么便有资格去尝试获取资源（可能是老大释放完资源唤醒自己的，当然也可能被interrupt了）。
                 if (p == head && tryAcquire(arg)) {
+                    //拿到资源后，将head指向该结点。所以head所指的标杆结点，就是当前获取到资源的那个结点或null。
                     setHead(node);
+                    // setHead中node.prev已置为null，此处再将head.next置为null，就是为了方便GC回收以前的head结点。也就意味着之前拿完资源的结点出队了！
                     p.next = null; // help GC
+                    // 成功获取资源
                     failed = false;
+                    //返回等待过程中是否被中断过
                     return interrupted;
                 }
-                //检查当前节点是否应该被park
+                //如果自己可以休息了，就通过park()进入waiting状态，直到被unpark()。如果不可中断的情况下被中断了，那么会从park()中醒过来，发现拿不到资源，从而继续进入park()等待
                 if (shouldParkAfterFailedAcquire(p, node) && parkAndCheckInterrupt()) {
-                    interrupted = true;
+                    interrupted = true;//如果等待过程中被中断过，哪怕只有那么一次，就将interrupted标记为true
                 }
             }
         } finally {
-            if (failed) {
+            if (failed) { // 如果等待过程中没有成功获取资源（如timeout，或者可中断的情况下被中断了），那么取消结点在队列中的等待。
                 cancelAcquire(node);
             }
         }
@@ -198,16 +210,22 @@ public abstract class AQS extends BaseAQS implements Serializable {
 
     //通过对当前节点的前一个节点的状态进行判断，对当前节点做出不同的操作
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
-        int ws = pred.waitStatus;
+        int ws = pred.waitStatus;//拿到前驱的状态
         if (ws == Node.SIGNAL) {
+            //如果已经告诉前驱拿完号后通知自己一下，那就可以安心休息了
             return true;
         }
         if (ws > 0) {
+            /*
+             * 如果前驱放弃了，那就一直往前找，直到找到最近一个正常等待的状态，并排在它的后边。
+             * 注意：那些放弃的结点，由于被自己“加塞”到它们前边，它们相当于形成一个无引用链，稍后就会被保安大叔赶走了(GC回收)！
+             */
             do {
                 node.prev = pred = pred.prev;
             } while (pred.waitStatus > 0);
             pred.next = node;
         } else {
+            //如果前驱正常，那就把前驱的状态设置成SIGNAL，告诉它拿完号后通知自己一下。有可能失败，人家说不定刚刚释放完呢！
             compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
         }
         return false;
@@ -219,8 +237,8 @@ public abstract class AQS extends BaseAQS implements Serializable {
     // 2）被interrupt()。
     // 需要注意的是，Thread.interrupted()会清除当前线程的中断标记位
     private final boolean parkAndCheckInterrupt() {
-        LockSupport.park(this);
-        return Thread.interrupted();
+        LockSupport.park(this);//调用park()使线程进入waiting状态
+        return Thread.interrupted();//如果被唤醒，查看自己是不是被中断的。
     }
 
     //该方法用于将当前线程根据不同的模式（Node.EXCLUSIVE互斥模式、Node.SHARED共享模式）加入到等待队列的队尾，并返回当前线程所在的结点。

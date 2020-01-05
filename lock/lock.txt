@@ -143,10 +143,9 @@ JDK1.6对synchronized关键字做了很多优化，包括自旋锁、适应性�
 偏向锁：
 
 AQS:AbstractQueuedSynchronizer简称
-
-
-
-
+抽象的队列式的同步器，AQS定义了一套多线程访问共享资源的同步器框架，许多同步类实现都依赖于它
+AQS维护了一个volatile int state（代表共享资源）和一个FIFO线程等待队列（多线程争用资源被阻塞时会进入此队列）
+AQS定义两种资源共享方式：Exclusive（独占，只有一个线程能执行，如ReentrantLock）和Share（共享，多个线程可同时执行，如Semaphore/CountDownLatch）
 
 
 
