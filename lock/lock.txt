@@ -6,6 +6,7 @@ openJDK之如何下载各个版本的openJDK源码：https://www.cnblogs.com/hai
 数据库的行锁、表锁、读锁、写锁都是这种方式。java中的synchronized和Lock的实现类也是悲观锁的思想
 数据库级别悲观锁：采用的数据库内部的锁机制，一个典型的倚赖数据库的悲观锁调用：select * from sys_user where name=”张三” for update;
 
+synchronized 关键字通过一对字节码指令 monitorenter/monitorexit 实现， 这对指令被 JVM 规范所描述
 
 2.乐观锁：总是假设最好的情况，每次拿数据都认为别人不会修改数据，所以不会加锁，但是更新的时候，会判断在此期间有没有人修改过；
 乐观锁一般会使用版本号机制或CAS算法实现
