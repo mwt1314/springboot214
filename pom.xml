@@ -27,6 +27,7 @@
         <module>javanio</module>
         <module>java-sort</module>
         <module>lock</module>
+        <module>design-pattern</module>
     </modules>
 
     <parent>
