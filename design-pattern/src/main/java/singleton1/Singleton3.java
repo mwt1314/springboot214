@@ -7,6 +7,7 @@ package singleton1;
  */
 public class Singleton3 {
 
+    //volatile：内存可见性+防止指令重排
     private static volatile Singleton3 instance = null;
 
     private Singleton3() {
