@@ -28,6 +28,7 @@
         <module>java-sort</module>
         <module>lock</module>
         <module>design-pattern</module>
+        <module>thread</module>
     </modules>
 
     <parent>

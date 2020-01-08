@@ -76,6 +76,15 @@ public class AtomicInteger {
         return unsafe.compareAndSwapInt(this, valueOffset, expect, update);
     }
 
+    public final void set(int newValue) {
+        value = newValue;
+    }
+
+    //通过该方法对共享变量值的改变，不一定能被其他线程立即看到。也就是说以普通变量的操作方式来写变量。即无法保证value的可见性
+    public final void lazySet(int newValue) {
+        unsafe.putOrderedInt(this, valueOffset, newValue);
+    }
+
 }
 
 public final class Unsafe {
@@ -150,7 +159,8 @@ AQS定义两种资源共享方式：Exclusive（独占，只有一个线程能�
 
 
 
-
+AtomicMarkableReference<V>  维护了boolean变量表示引用变量是否被更改过
+AtomicStampedReference<V>  维护了int类型的变量表示版本号
 
 
 
