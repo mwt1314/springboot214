@@ -19,21 +19,21 @@ public abstract class AQS extends BaseAQS implements Serializable {
     //Node结点是对每一个等待获取资源的线程的封装，其包含了需要同步的线程本身及其等待状态
     static final class Node {
 
-        static final Node SHARED = new Node();
+        static final Node SHARED = new Node(); //共享模式
 
-        static final Node EXCLUSIVE = null;
+        static final Node EXCLUSIVE = null; //独占模式
 
         //表示当前结点已取消调度。当timeout或被中断（响应中断的情况下），会触发变更为此状态，进入该状态后的结点将不会再变化
         static final int CANCELLED = 1;
-        //表示后继结点在等待当前结点唤醒。后继结点入队时，会将前继结点的状态更新为SIGNAL
+        //被标识为该等待唤醒状态的后继结点，当其前继结点的线程释放了同步锁或被取消，将会通知该后继结点的线程执行。说白了，就是处于唤醒状态，只要前继结点释放锁，就会通知标识为SIGNAL状态的后继结点的线程执行
         static final int SIGNAL = -1;
-        //表示结点等待在Condition上，当其他线程调用了Condition的signal()方法后，CONDITION状态的结点将从等待队列转移到同步队列中，等待获取同步锁
+        //与Condition相关，该标识的结点处于等待队列中，结点的线程等待在Condition上，当其他线程调用了Condition的signal()方法后，CONDITION状态的结点将从等待队列转移到同步队列中，等待获取同步锁
         static final int CONDITION = -2;
-        //新结点入队时的默认状态
+        //与共享模式相关，在共享模式中，该状态标识结点的线程处于可运行状态
         static final int PROPAGATE = -3;
 
         //表示当前Node结点的等待状态
-        //共有5种取值CANCELLED、SIGNAL、CONDITION、PROPAGATE、0新结点入队时的默认状态
+        //共有5种取值CANCELLED、SIGNAL、CONDITION、PROPAGATE、0初始化状态
         //负值表示结点处于有效等待状态，而正值表示结点已被取消。所以源码中很多地方用>0、<0来判断结点的状态是否正常
         volatile int waitStatus;
 
@@ -74,8 +74,7 @@ public abstract class AQS extends BaseAQS implements Serializable {
     }
 
     // head = new Node();
-    private transient volatile Node head;
-
+    private transient volatile Node head;   //CLH队列（FIFO）FIFO线程等待队列（多线程争用资源被阻塞时会进入此队列）
     private transient volatile Node tail;
 
     //当前同步状态
@@ -143,12 +142,14 @@ public abstract class AQS extends BaseAQS implements Serializable {
     }
 
     // acquire是一种以独占方式获取资源，如果获取到资源，线程直接返回，否则进入等待队列，直到获取到资源为止，且整个过程忽略中断的影响。
+
     // 该方法是独占模式下线程获取共享资源的顶层入口。获取到资源后，线程就可以去执行其临界区代码了
     public final void acquire(int arg) {
         //tryAcquire：独占方式获取资源，成功为true
         //addWaiter：将该线程加入等待队列的尾部，并标记为独占模式
         //acquireQueued：使线程在等待队列中获取资源，一直获取到资源后才返回。如果在整个等待过程中被中断过，则返回true，否则返回false
         if (!tryAcquire(arg) && acquireQueued(addWaiter(Node.EXCLUSIVE), arg)) {
+            //通过tryAcquire()和addWaiter()，该线程获取资源失败，已经被放入等待队列尾部了
             selfInterrupt();
         }
     }
@@ -156,7 +157,7 @@ public abstract class AQS extends BaseAQS implements Serializable {
     //独占模式下线程释放共享资源的顶层入口
     //它会释放指定量的资源，如果彻底释放了（即state=0）,它会唤醒等待队列里的其他线程来获取资源
     public final boolean release(int arg) {
-        if (tryRelease(arg)) {
+        if (tryRelease(arg)) {  //尝试释放锁
             Node h = head;
             if (h != null && h.waitStatus != 0) {
                 unparkSuccessor(h);
@@ -248,9 +249,9 @@ public abstract class AQS extends BaseAQS implements Serializable {
         Node node = new Node(Thread.currentThread(), mode);
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;
-        if (pred != null) {
+        if (pred != null) { //非空表示head已经创建
             node.prev = pred;
-            if (compareAndSetTail(pred, node)) {
+            if (compareAndSetTail(pred, node)) {    //cas更新tail为新产生的节点，如果返回true则更新tail成功，否则失败
                 pred.next = node;
                 return node;
             }

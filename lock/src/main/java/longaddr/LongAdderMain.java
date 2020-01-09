@@ -65,13 +65,18 @@ public class LongAdderMain {
     }*/
 
 /*
-    // 这三个属性都在Striped64中
-
+    //cpu核数，决定了槽数组的大小
+    static final int NCPU = Runtime.getRuntime().availableProcessors();
 
     transient volatile Cell[] cells;    // cells数组，存储各个段的值
 
+    //基数，在两种情况下会使用：
+    //1.没有遇到并发竞争时，直接使用base累加数值
+    //2.初始化cells数组时，必须要保证cell数组只被初始化一次（即只有一个线程可以对cells初始化），其他竞争失败的线程会将数值累加base上
     transient volatile long base;   // 最初无竞争时使用的，也算一个特殊的段
 
+    //锁标识：
+    //cells初始化或扩容时，通过cas操作将此标识设置为1-加锁状态，初始化或扩容完成后，将此标识设置为0-无锁状态
     transient volatile int cellsBusy;   // 标记当前是否有线程在创建或扩容cells，或者在创建Cell；通过CAS更新该值，相当于是一个锁
 
     final boolean casCellsBusy() {  //
@@ -80,6 +85,7 @@ public class LongAdderMain {
 
     final void longAccumulate(long x, LongBinaryOperator fn, boolean wasUncontended) {
         int h;
+        //给当前线程分配hash值
         if ((h = getProbe()) == 0) { //如果当前线程的prope为0的话
             ThreadLocalRandom.current();  // 强制初始化，防止prope还是为0
             h = getProbe(); //重新获取prope
@@ -90,8 +96,8 @@ public class LongAdderMain {
         for (;;) {
             Cell[] as; Cell a; int n; long v; //n为cells的长度
 
-            if ((as = cells) != null        //cells已经被初始化过了
-                    && (n = as.length) > 0) {
+            //case1：cells已经被初始化过了
+            if ((as = cells) != null && (n = as.length) > 0) {
 
                 if ((a = as[(n - 1) & h]) == null) {    //如果该线程对应的cell还没有被初始化的时候
 
@@ -123,12 +129,12 @@ public class LongAdderMain {
                         }
                     }
                     collide = false;     // 标记当前未出现冲突
-                } else if (!wasUncontended)       // CAS already known to fail
-                    wasUncontended = true;      // Continue after rehash
+                } else if (!wasUncontended)       //wasUncontended表示前一次cas更新cell单元是否成功
+                    wasUncontended = true;      //重新置为true，后面会重新计算线程的hash值
                 else if (a.cas(v = a.value, ((fn == null) ? v + x : fn.applyAsLong(v, x))))  //当前线程对应的cell已经初始化，尝试cas修改，如果成功则直接break
                     break;
-                else if (n >= NCPU || cells != as)  //如果cells数组的长度达到了CPU核心数，或者cells扩容了， 设置collide为false并通过下面的语句修改线程的probe再重新尝试
-                    collide = false;            // At max size or stale
+                else if (n >= NCPU || cells != as)  //如果cells数组的长度达到了CPU核心数永远不会再扩容了， 设置collide为false并通过下面的语句修改线程的probe再重新尝试
+                    collide = false;            //扩容标识，置为false表示不会再进行扩容
                 else if (!collide)
                     collide = true;
                 else if (cellsBusy == 0 && casCellsBusy()) {    // 明确出现冲突了，尝试占有锁（也就是标记cellsBusy=1），并扩容
@@ -146,14 +152,16 @@ public class LongAdderMain {
                     continue;        // 使用扩容后的新数组重新尝试
                 }
                 h = advanceProbe(h);     // 更新失败或者达到了CPU核心数，重新生成probe，并重试
+
+            //case2：cells没有加锁切没有被初始化，则尝试对它加锁，并初始化cells数组
             } else if (cellsBusy == 0   //如果cells没有正在进行创建或扩容cells
                             && cells == as
-                            && casCellsBusy()) {    //尝试占有锁，如果返回成功，表示cellsBusy被修改为1，准备创建或扩容cells了
+                            && casCellsBusy()) {    //尝试占有锁，如果返回成功，表示cellsBusy被修改为1，准备创建cells
                 boolean init = false;    // 是否初始化成功
-                try {                           // Initialize table
+                try {
                     if (cells == as) {   // 检测是否有其它线程初始化过
                         Cell[] rs = new Cell[2];
-                        rs[h & 1] = new Cell(x);     // 找到当前线程hash到数组中的位置并创建其对应的Cell
+                        rs[h & 1] = new Cell(x);   //根据当前线程的hash值计算映射的索引，并创建对应的Cell对象，Cell单元中的初始值x就是本次要累加的值
                         cells = rs;  // 赋值给cells数组
                         init = true;    // 初始化成功
                     }
@@ -163,6 +171,9 @@ public class LongAdderMain {
                 if (init) { // 初始化成功直接返回，因为增加的值已经同时创建到Cell中了
                     break;
                 }
+
+            //如果在初始化过程中，另一个线程ThreadB也进入了longAccumulate方法，就会进入分支
+            //case3：cells正在进行初始化，则尝试直接在base上进行累加操作
             } else if (casBase(v = base, ((fn == null) ? v + x : fn.applyAsLong(v, x)))) {   // 如果有其它线程在初始化cells数组中，就尝试更新base，如果成功了就返回
                 break;
             }
