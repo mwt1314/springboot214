@@ -18,7 +18,7 @@ public class CountDownLatchMain {
         for (int i = 0; i < state; i++) {
             new Thread(() -> {
                 try {
-
+                    //https://segmentfault.com/a/1190000015807573
                 } finally {
                     countDownLatch.countDown();
                 }
