@@ -1,7 +1,5 @@
 package longaddr;
 
-import javafx.scene.control.Cell;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.LongAdder;
@@ -27,10 +25,10 @@ public class LongAdderMain {
     public static void main(String[] args) {
         LongAdder longAdder = new LongAdder();
 
-        ExecutorService executors = Executors.newFixedThreadPool(10);
+        ExecutorService executors = Executors.newFixedThreadPool(100);
         for (int i = 0; i < 1000000; i++) {
             executors.submit(() -> {
-                longAdder.decrement();
+                longAdder.increment();
             });
         }
         executors.shutdown();
@@ -59,7 +57,7 @@ public class LongAdderMain {
                                                         //可能会有多个线程的cells索引位置相同，存在竞争
                     || !(uncontended = a.cas(v = a.value, v + x)))  //如果执行到这里，说明当前线程对应的cell不为空，尝试更新当前cell中的value。
                                                                     //如果cell.cas成功， 也就是uncontended=true表示竞争不激烈；
-                                                                    //如果失败了， 也就是uncontended=true，说明这一个cell上一定有多个线程在同步修改cell，竞争激烈
+                                                                    //如果失败了， 也就是uncontended=false，说明这一个cell上一定有多个线程在同步修改cell，竞争激烈
                 longAccumulate(x, null, uncontended);   // 调用Striped64中的方法处理
         }
     }*/
@@ -111,7 +109,7 @@ public class LongAdderMain {
                                 Cell[] rs; int m, j;
 
                                  // 重新获取cells，并找到当前线程hash到cells数组中的位置
-                                // 这里一定要重新获取cells，因为as并不在锁定范围内
+                                // 这里一定要重新获取cells，因为rs并不在锁定范围内
                                 // 有可能已经扩容了，这里要重新获取
                                 if ((rs = cells) != null
                                         && (m = rs.length) > 0

@@ -29,6 +29,7 @@
         <module>lock</module>
         <module>design-pattern</module>
         <module>thread</module>
+        <module>java-proxy</module>
     </modules>
 
     <parent>
