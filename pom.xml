@@ -30,6 +30,7 @@
         <module>design-pattern</module>
         <module>thread</module>
         <module>java-proxy</module>
+        <module>java-collection</module>
     </modules>
 
     <parent>

@@ -1,4 +1,4 @@
-package thread.state;
+package state;
 
 import java.util.ArrayList;
 import java.util.List;

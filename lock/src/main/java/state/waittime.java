@@ -1,4 +1,4 @@
-package thread.state;
+package state;
 
 import lombok.SneakyThrows;
 
@@ -19,7 +19,11 @@ public class waittime {
                 synchronized (lock) {
                     System.out.println(1);
                     //当前线程调用对象的wait()方法，当前线程释放对象锁，进入等待队列WAITING
-                    lock.wait(1000);
+                    try {
+                        lock.wait(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     System.out.println(2);
                 }
             }

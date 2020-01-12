@@ -1,4 +1,4 @@
-package thread.state;
+package state;
 
 public class join {
 

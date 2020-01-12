@@ -1,4 +1,4 @@
-package thread.state;
+package state;
 
 /**
  * @author mawt
