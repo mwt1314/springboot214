@@ -119,7 +119,8 @@ public class AQSCoundDownLatch {
 
     public final boolean releaseShared(int arg) {
         if (tryReleaseShared(arg)) {    //尝试释放共享锁 如果返回true则代表获取共享锁state=1并成功cas为0
-            //此时state=0了，释放共享锁了
+            //此时state由1变成0了，释放共享锁了
+            //此时一定是单线程
             doReleaseShared();
             return true;
         }
@@ -147,30 +148,30 @@ public class AQSCoundDownLatch {
             Node h = head;
             if (h != null && h != tail) {
                 int ws = h.waitStatus;
-                if (ws == Node.SIGNAL) {
-                    if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0)) {
+                if (ws == Node.SIGNAL) { //如果当前节点的ws状态为-1
+                    if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0)) {  //尝试修改当前节点的ws状态-1变为0，如果修改失败，continue
                         continue;            // loop to recheck cases
                     }
+                    //尝试修改当前节点的ws状态-1变为0，成功
+                    //唤醒当前节点
                     unparkSuccessor(h);
                 } else if (ws == 0 &&
                         !compareAndSetWaitStatus(h, 0, Node.PROPAGATE)) {
                     continue;                // loop on failed CAS
                 }
             }
-            if (h == head)                   // loop if head changed
-            {
+            if (h == head) {                // loop if head changed
+
                 break;
             }
         }
     }
 
     private void unparkSuccessor(Node node) {
-
         int ws = node.waitStatus;
         if (ws < 0) {
             compareAndSetWaitStatus(node, ws, 0);
         }
-
         Node s = node.next;
         if (s == null || s.waitStatus > 0) {
             s = null;
@@ -181,6 +182,7 @@ public class AQSCoundDownLatch {
             }
         }
         if (s != null) {
+            //唤醒线程
             LockSupport.unpark(s.thread);
         }
     }
@@ -200,10 +202,11 @@ public class AQSCoundDownLatch {
 
     public final void acquireSharedInterruptibly(int arg)
             throws InterruptedException {
-        if (Thread.interrupted()) {
+        if (Thread.interrupted()) { //await响应中断
             throw new InterruptedException();
         }
-        if (tryAcquireShared(arg) < 0) {
+        if (tryAcquireShared(arg) < 0) {    //如果state=0返回1 否则返回-1
+            //此时state不等于0，需要获取对象锁
             doAcquireSharedInterruptibly(arg);
         }
     }
@@ -214,13 +217,13 @@ public class AQSCoundDownLatch {
 
     private void doAcquireSharedInterruptibly(int arg)
             throws InterruptedException {
-        final Node node = addWaiter(Node.SHARED);
+        final Node node = addWaiter(Node.SHARED);   //当前节点以共享的方式加入到队尾
         boolean failed = true;
         try {
             for (; ; ) {
                 final Node p = node.predecessor();
                 if (p == head) {
-                    int r = tryAcquireShared(arg);
+                    int r = tryAcquireShared(arg);  //返回state
                     if (r >= 0) {
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
