@@ -247,7 +247,6 @@ public abstract class AQS extends BaseAQS implements Serializable {
     // 否则，通过enq(node)方法初始化一个等待队列，并返回当前节点
     private Node addWaiter(Node mode) {
         Node node = new Node(Thread.currentThread(), mode);
-        // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;
         if (pred != null) { //非空表示head已经创建
             node.prev = pred;
@@ -261,35 +260,25 @@ public abstract class AQS extends BaseAQS implements Serializable {
     }
 
     private void cancelAcquire(Node node) {
-        // Ignore if node doesn't exist
         if (node == null) {
             return;
         }
 
         node.thread = null;
 
-        // Skip cancelled predecessors
         Node pred = node.prev;
         while (pred.waitStatus > 0) {
             node.prev = pred = pred.prev;
         }
 
-        // predNext is the apparent node to unsplice. CASes below will
-        // fail if not, in which case, we lost race vs another cancel
-        // or signal, so no further action is necessary.
         Node predNext = pred.next;
 
-        // Can use unconditional write instead of CAS here.
-        // After this atomic step, other Nodes can skip past us.
-        // Before, we are free of interference from other threads.
         node.waitStatus = Node.CANCELLED;
 
-        // If we are the tail, remove ourselves.
         if (node == tail && compareAndSetTail(node, pred)) {
             compareAndSetNext(pred, predNext, null);
         } else {
-            // If successor needs signal, try to set pred's next-link
-            // so it will get one. Otherwise wake it up to propagate.
+
             int ws;
             if (pred != head &&
                     ((ws = pred.waitStatus) == Node.SIGNAL ||
@@ -303,27 +292,17 @@ public abstract class AQS extends BaseAQS implements Serializable {
                 unparkSuccessor(node);
             }
 
-            node.next = node; // help GC
+            node.next = node;
         }
     }
 
     private void unparkSuccessor(Node node) {
-        /*
-         * If status is negative (i.e., possibly needing signal) try
-         * to clear in anticipation of signalling.  It is OK if this
-         * fails or if status is changed by waiting thread.
-         */
+
         int ws = node.waitStatus;
         if (ws < 0) {
             compareAndSetWaitStatus(node, ws, 0);
         }
 
-        /*
-         * Thread to unpark is held in successor, which is normally
-         * just the next node.  But if cancelled or apparently null,
-         * traverse backwards from tail to find the actual
-         * non-cancelled successor.
-         */
         Node s = node.next;
         if (s == null || s.waitStatus > 0) {
             s = null;
@@ -335,6 +314,35 @@ public abstract class AQS extends BaseAQS implements Serializable {
         }
         if (s != null) {
             LockSupport.unpark(s.thread);
+        }
+    }
+
+    public final boolean releaseShared(int arg) {
+        if (tryReleaseShared(arg)) {
+            doReleaseShared();
+            return true;
+        }
+        return false;
+    }
+
+    private void doReleaseShared() {
+        for (; ; ) {
+            Node h = head;
+            if (h != null && h != tail) {
+                int ws = h.waitStatus;
+                if (ws == Node.SIGNAL) {
+                    if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0)) {
+                        continue;
+                    }
+                    unparkSuccessor(h);
+                } else if (ws == 0 && !compareAndSetWaitStatus(h, 0, Node.PROPAGATE)) {
+                    continue;                // loop on failed CAS
+                }
+            }
+            if (h == head)                   // loop if head changed
+            {
+                break;
+            }
         }
     }
 
