@@ -5,12 +5,26 @@ import sun.misc.Unsafe;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 /**
  * @author mawt
  * @description
  * @date 2020/1/13
+ */
+
+/**
+ * CountDownLatch计数器闭锁是一个能阻塞主线程，让其他线程满足特定条件下主线程再继续执行的线程同步工具
+ * <p>
+ * CountDownLatch 与 join 方法的区别，
+ * 一个区别是调用一个子线程的 join（）方法后，该线程会一直被阻塞直到该线程运行完毕，而 CountDownLatch 则使用计数器允许子线程运行完毕或者运行中时候递减计数，也就是 CountDownLatch 可以在子线程运行任何时候让 await 方法返回而不一定必须等到线程结束；
+ * 另外使用线程池来管理线程时候一般都是直接添加 Runable 到线程池这时候就没有办法在调用线程的 join 方法了，countDownLatch 相比 Join 方法让我们对线程同步有更灵活的控制
+ * <p>
+ * CountDownLatch 的应用场景：
+ * 确保某个计算在其需要的所有资源都被初始化之后才执行
+ * 确保某个服务在其依赖的所有其他服务都已经启动之后才启动
+ * 等待直到每个操作的所有参与者都就绪再执行（比如打麻将时需要等待四个玩家就绪）
  */
 public class AQSCoundDownLatch {
 
@@ -83,6 +97,27 @@ public class AQSCoundDownLatch {
         }
     }
 
+    //当前线程调用了该方法后，会递减计数器的值，递减后如果计数器为 0 则会唤醒所有调用await方法而被阻塞的线程，否则什么都不做
+    public void countDown() {
+        releaseShared(1);
+    }
+
+    //当前线程调用了CountDownLatch对象的await方法后，当前线程会被阻塞，直到下面的情况之一才会返回：
+    // （1）当所有线程都调用了CountDownLatch对象的countDown方法后，也就是说计时器值为 0 的时候。
+    // （2）其他线程调用了当前线程的interrupt（）方法中断了当前线程，当前线程会抛出InterruptedException异常后返回
+    public void await() throws InterruptedException {
+        acquireSharedInterruptibly(1);
+    }
+
+    //当线程调用了 CountDownLatch 对象的该方法后，当前线程会被阻塞，直到下面的情况之一发生才会返回：
+    // （1）当所有线程都调用了 CountDownLatch 对象的 countDown 方法后，也就是计时器值为 0 的时候，这时候返回 true；
+    //  (2) 设置的 timeout 时间到了，因为超时而返回 false；
+    // （3）其它线程调用了当前线程的 interrupt（）方法中断了当前线程，当前线程会抛出 InterruptedException 异常后返回
+    public boolean await(long timeout, TimeUnit unit)
+            throws InterruptedException {
+        return tryAcquireSharedNanos(1, unit.toNanos(timeout));
+    }
+
     public static void main(String[] args) {
         AQSCoundDownLatch aqsCoundDownLatch = new AQSCoundDownLatch(10);
         List<Thread> threadList = new ArrayList<>();
@@ -113,24 +148,34 @@ public class AQSCoundDownLatch {
         }).start();
     }
 
-    public void countDown() {
-        releaseShared(1);
+    public final boolean tryAcquireSharedNanos(int arg, long nanosTimeout)
+            throws InterruptedException {
+        if (Thread.interrupted()) {
+            throw new InterruptedException();
+        }
+        return tryAcquireShared(arg) >= 0 ||
+                doAcquireSharedNanos(arg, nanosTimeout);
     }
 
     public final boolean releaseShared(int arg) {
-        if (tryReleaseShared(arg)) {    //尝试释放共享锁 如果返回true则代表获取共享锁state=1并成功cas为0
+        if (tryReleaseShared(arg)) {    //尝试释放共享锁，如果state=0代表成功，准备唤醒线程了
             //此时state由1变成0了，释放共享锁了
             //此时一定是单线程
+            System.out.println("最后一个线程：" + Thread.currentThread().getName());
+
             doReleaseShared();
             return true;
         }
         return false;
     }
 
+    //尝试释放锁
     protected boolean tryReleaseShared(int releases) {
         // Decrement count; signal when transition to zero
         for (; ; ) {
             int c = getState(); //获取state
+            //等于0了，无法再释放了
+            //防止计数器值为 0 后，其他线程又调用了countDown方法，状态值就会变成负数
             if (c == 0) {
                 return false;
             }
@@ -138,6 +183,7 @@ public class AQSCoundDownLatch {
             //尝试cas置换state为state-1
             if (compareAndSetState(c, nextc)) {
                 //cas成功
+                // 减为0的时候返回true，这时会唤醒后面排队的线程
                 return nextc == 0;
             }
         }
@@ -146,7 +192,8 @@ public class AQSCoundDownLatch {
     private void doReleaseShared() {
         for (; ; ) {
             Node h = head;
-            if (h != null && h != tail) {
+            if (h != null
+                    && h != tail) { //不止有head节点
                 int ws = h.waitStatus;
                 if (ws == Node.SIGNAL) { //如果当前节点的ws状态为-1
                     if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0)) {  //尝试修改当前节点的ws状态-1变为0，如果修改失败，continue
@@ -196,35 +243,40 @@ public class AQSCoundDownLatch {
         return unsafe.compareAndSwapInt(this, stateOffset, expect, update);
     }
 
-    public void await() throws InterruptedException {
-        acquireSharedInterruptibly(1);
-    }
-
     public final void acquireSharedInterruptibly(int arg)
             throws InterruptedException {
         if (Thread.interrupted()) { //await响应中断
             throw new InterruptedException();
         }
+
+        //等待其它线程完成的方法，它会先尝试获取一下共享锁，
+        // 如果成功，则state=0
+        // 如果失败，则进入AQS的队列中排队等待被唤醒
+        //state不等于0的时候tryAcquireShared()返回的是-1，也就是说count未减到0的时候所有调用await()方法的线程都要排队
         if (tryAcquireShared(arg) < 0) {    //如果state=0返回1 否则返回-1
-            //此时state不等于0，需要获取对象锁
-            doAcquireSharedInterruptibly(arg);
+            //此时获取共享锁失败，需要进入等待队列，等待被唤醒
+            doAcquireSharedInterruptibly(arg);  //可以响应中断
         }
     }
 
+    //尝试获取共享锁
     protected int tryAcquireShared(int acquires) {
+        //注意：这里state=0的时候总是返回1，也就是说state减为0的时候获取总是成功
+        //state不等于0的时候返回-1，也就是state不等于0的时候总是要排队
         return (getState() == 0) ? 1 : -1;
     }
 
     private void doAcquireSharedInterruptibly(int arg)
             throws InterruptedException {
-        final Node node = addWaiter(Node.SHARED);   //当前节点以共享的方式加入到队尾
-        boolean failed = true;
+        final Node node = addWaiter(Node.SHARED);   //当前节点以共享的方式加入到链表尾部
+        boolean failed = true;  //获取共享锁失败了
         try {
             for (; ; ) {
                 final Node p = node.predecessor();
                 if (p == head) {
-                    int r = tryAcquireShared(arg);  //返回state
+                    int r = tryAcquireShared(arg);  //尝试获取共享锁state，如果state=0获取成功返回1，否则获取失败返回-1
                     if (r >= 0) {
+                        //此时，获取共享锁state=0成功
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
                         failed = false;
@@ -237,7 +289,7 @@ public class AQSCoundDownLatch {
                 }
             }
         } finally {
-            if (failed) {
+            if (failed) {   //如果失败或出现异常，失败 取消该节点，以便唤醒后续节点
                 cancelAcquire(node);
             }
         }
@@ -295,11 +347,11 @@ public class AQSCoundDownLatch {
     }
 
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
-        int ws = pred.waitStatus;
-        if (ws == Node.SIGNAL) {
+        int ws = pred.waitStatus;   //获取前驱节点的状态
+        if (ws == Node.SIGNAL) {    //如果前驱节点的状态为signal
             return true;
         }
-        if (ws > 0) {
+        if (ws > 0) {   //如果前节点状态大于0表明已经中断，
             do {
                 node.prev = pred = pred.prev;
             } while (pred.waitStatus > 0);
@@ -307,7 +359,7 @@ public class AQSCoundDownLatch {
         } else {
             compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
         }
-        return false;
+        return false;   //只有前驱节点状态为SIGNAL才返回真
     }
 
     private void setHeadAndPropagate(Node node, int propagate) {
@@ -322,6 +374,46 @@ public class AQSCoundDownLatch {
         }
     }
 
+    private boolean doAcquireSharedNanos(int arg, long nanosTimeout)
+            throws InterruptedException {
+        if (nanosTimeout <= 0L) {
+            return false;
+        }
+        final long deadline = System.nanoTime() + nanosTimeout;
+        final Node node = addWaiter(Node.SHARED);
+        boolean failed = true;
+        try {
+            for (; ; ) {
+                final Node p = node.predecessor();
+                if (p == head) {
+                    int r = tryAcquireShared(arg);
+                    if (r >= 0) {
+                        setHeadAndPropagate(node, r);
+                        p.next = null; // help GC
+                        failed = false;
+                        return true;
+                    }
+                }
+                nanosTimeout = deadline - System.nanoTime();
+                if (nanosTimeout <= 0L) {
+                    return false;
+                }
+                if (shouldParkAfterFailedAcquire(p, node) &&
+                        nanosTimeout > spinForTimeoutThreshold) {
+                    LockSupport.parkNanos(this, nanosTimeout);
+                }
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
+            }
+        } finally {
+            if (failed) {
+                cancelAcquire(node);
+            }
+        }
+    }
+
+
     private void setHead(Node node) {
         head = node;
         node.thread = null;
@@ -329,7 +421,7 @@ public class AQSCoundDownLatch {
     }
 
     private Node addWaiter(Node mode) {
-        Node node = new Node(Thread.currentThread(), mode);
+        Node node = new Node(Thread.currentThread(), mode); //首先new一个节点，该节点维护一个线程引用
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;
         if (pred != null) {
@@ -339,7 +431,7 @@ public class AQSCoundDownLatch {
                 return node;
             }
         }
-        enq(node);
+        enq(node);   //设置失败，表明是第一个创建节点，或者是已经被别的线程修改过了会进入这里
         return node;
     }
 
@@ -348,7 +440,7 @@ public class AQSCoundDownLatch {
             Node t = tail;
             if (t == null) { // Must initialize
                 if (compareAndSetHead(new Node())) {
-                    tail = head;
+                    tail = head;     //初始化时 头尾节点相等
                 }
             } else {
                 node.prev = t;
@@ -377,6 +469,8 @@ public class AQSCoundDownLatch {
     private static final long tailOffset;
     private static final long waitStatusOffset;
     private static final long nextOffset;
+
+    static final long spinForTimeoutThreshold = 1000L;
 
     static {
         try {
