@@ -9,7 +9,7 @@ import java.util.concurrent.locks.LockSupport;
  * @author mawt
  * @description ReentrantLock是一个可重入且独占式的锁，又分为非公平锁和公平锁
  * <p>
- * 非公平锁测试：https://www.cnblogs.com/fsmly/p/11274572.html
+ * 非公平锁测试：https://www.cnblogs.com/fsmly/p/11274572.html https://blog.csdn.net/qq_35818427/article/details/103993439
  * @date 2020/1/16
  */
 public class AQSNonfairReentrantLock {
@@ -183,54 +183,78 @@ public class AQSNonfairReentrantLock {
                 //的waitStatus设置为-1(SIGNAL),并且park自己，等待前驱结点的唤醒
                 if (shouldParkAfterFailedAcquire(p, node)   //如果获取锁失败，判断是否需要阻塞当期线程
                         && parkAndCheckInterrupt()) {   //阻塞当期线程，并返回当期线程的中断标识并清除中断标识
+
+
                     interrupted = true;
                 }
             }
         } finally {
-            if (failed) {   //获取锁失败了
+            if (failed) {
+                //取消获取锁
                 cancelAcquire(node);
             }
         }
     }
 
+    /**
+     * 该方法实现某个node取消获取锁。
+     * 该函数完成的功能就是取消当前线程对资源的获取，即设置该结点的状态为CANCELLED
+     */
     private void cancelAcquire(Node node) {
         if (node == null)
             return;
 
         node.thread = null;
 
-        // Skip cancelled predecessors
+        // 遍历并更新节点前驱，把node的prev指向前部第一个非cancelled节点
         Node pred = node.prev;
         while (pred.waitStatus > 0) {
             node.prev = pred = pred.prev;
         }
 
-        // predNext is the apparent node to unsplice. CASes below will
-        // fail if not, in which case, we lost race vs another cancel
-        // or signal, so no further action is necessary.
+        // 记录pred节点的后继为predNext，
         Node predNext = pred.next;
 
-        // Can use unconditional write instead of CAS here.
-        // After this atomic step, other Nodes can skip past us.
-        // Before, we are free of interference from other threads.
+        // 设置当前节点的等待状态置为取消
         node.waitStatus = Node.CANCELLED;
 
-        // If we are the tail, remove ourselves.
+        /*如果尾结点为当前节点了，则CAS设置当前节点的前驱节点为尾结点，当前节点释放了锁，不需要了，要与同步队列断开关系
+         * 则剩下要做的事情就是尝试用CAS将pred节点的next更新为null以彻底切断pred和node的联系。
+         * 这样一来就断开了pred与pred的所有后继节点，这些节点由于变得不可达，最终会被回收掉。
+         * 由于node没有后继节点，所以这种情况到这里整个cancel就算是处理完毕了。
+         *
+         * 这里的CAS更新pred的next即使失败了也没关系，说明有其它新入队线程或者其它取消线程更新掉了。
+         */
         if (node == tail && compareAndSetTail(node, pred)) {
             compareAndSetNext(pred, predNext, null);
         } else {
-            // If successor needs signal, try to set pred's next-link
-            // so it will get one. Otherwise wake it up to propagate.
+            //node结点不为尾结点，或者比较设置不成功
             int ws;
+            /**
+             *  (pred结点不为头结点，并且pred结点的状态为SIGNAL）或者
+             // pred结点状态小于等于0，并且比较并设置等待状态为SIGNAL成功，并且pred结点所封装的线程不为空
+             */
             if (pred != head &&
                     ((ws = pred.waitStatus) == Node.SIGNAL ||
                             (ws <= 0 && compareAndSetWaitStatus(pred, ws, Node.SIGNAL))) &&
                     pred.thread != null) {
+                // 保存结点的后继
                 Node next = node.next;
-                if (next != null && next.waitStatus <= 0) {
-                    compareAndSetNext(pred, predNext, next);
+                if (next != null && next.waitStatus <= 0) {// 后继不为空并且后继的状态小于等于0
+                    compareAndSetNext(pred, predNext, next);//cas设置pred节点的下一个节点为next节点 即pred.next=next
                 }
             } else {
+                /*
+                 * 这时说明pred == head或者pred状态取消或者pred.thread == null
+                 * 在这些情况下为了保证队列的活跃性，需要去唤醒一次后继线程。
+                 * 举例来说pred == head完全有可能实际上目前已经没有线程持有锁了，
+                 * 自然就不会有释放锁唤醒后继的动作。如果不唤醒后继，队列就挂掉了。
+                 *
+                 * 这种情况下看似由于没有更新pred的next的操作，队列中可能会留有一大把的取消节点。
+                 * 实际上不要紧，因为后继线程唤醒之后会走一次试获取锁的过程，
+                 * 失败的话会走到shouldParkAfterFailedAcquire的逻辑。
+                 * 那里面的if中有处理前驱节点如果为取消则维护pred/next,踢掉这些取消节点的逻辑。
+                 */
                 unparkSuccessor(node);
             }
 
@@ -242,25 +266,37 @@ public class AQSNonfairReentrantLock {
         Thread.currentThread().interrupt();
     }
 
+    //只有当该节点的前驱结点的状态为SIGNAL时，才可以对该结点所封装的线程进行park操作。否则，将不能进行park操作
+    // 进行park操作并且返回该线程是否被中断
     private final boolean parkAndCheckInterrupt() {
-        LockSupport.park(this);
-        return Thread.interrupted();
+        LockSupport.park(this);   // 在许可可用之前禁用当前线程，并且设置了blocker
+        return Thread.interrupted();    // 当前线程是否已被中断，并清除中断标记位
     }
 
+    //根据前驱节点中的waitStatus来判断是否需要阻塞当前线程
     //如果前驱节点的ws=-1，返回true；其他的 返回false
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         int ws = pred.waitStatus;   //获取前驱节点的状态
         if (ws == Node.SIGNAL) {    //如果前驱节点的状态为signal=-1
             //如果前驱节点的状态为-1，说明当前节点需要被其前驱节点唤醒，此时要阻塞当期节点，所以返回true
+            //如果前驱节点状态为SIGNAL状态，在释放锁时会唤醒后继节点（也就是当前线程），所以现在可以阻塞自己等待唤醒
             return true;
         }
         if (ws > 0) {   //如果前驱节点状态大于0表明已经超时或者中断，此时要把他们移出等待队列了
             //这里就是将所有的前驱结点状态为CANCELLED的都移除
+            /*
+             * 前驱节点状态为取消,向前遍历，更新当前节点的前驱为往前第一个非取消节点。
+             * 当前线程会之后会再次回到循环并尝试获取锁。
+             */
             do {
                 node.prev = pred = pred.prev;
             } while (pred.waitStatus > 0);
             pred.next = node;
         } else {
+            /**
+             * 等待状态为0或者PROPAGATE(-3)，设置前驱的等待状态为SIGNAL,
+             * 并且之后会回到循环再次重试获取锁。
+             */
             compareAndSetWaitStatus(pred, ws, Node.SIGNAL); //尝试设置前驱节点的状态为SIGHNAL=-1
         }
         return false;   //只有前驱节点状态为SIGNAL才返回真
@@ -305,22 +341,24 @@ public class AQSNonfairReentrantLock {
     }
 
     private void unparkSuccessor(Node node) {
-        int ws = node.waitStatus;
+        int ws = node.waitStatus; // 获取node结点的等待状态
         if (ws < 0) {
+            // 尝试将node的等待状态置为0,这样的话,后继争用线程可以有机会再尝试获取一次锁。
             compareAndSetWaitStatus(node, ws, 0);
         }
         Node s = node.next;
-        if (s == null || s.waitStatus > 0) {
-            s = null;
+        if (s == null || s.waitStatus > 0) {// 下一个结点为空或者下一个节点的等待状态大于0，即为CANCELLED
+            s = null;// s赋值为空
+            // 从尾结点开始从后往前开始遍历
             for (Node t = tail; t != null && t != node; t = t.prev) {
-                if (t.waitStatus <= 0) {
-                    s = t;
+                if (t.waitStatus <= 0) {// 找到等待状态小于等于0的结点，找到最前的状态小于等于0的结点
+                    s = t;// 保存结点
                 }
             }
         }
         if (s != null) {
             //唤醒线程
-            LockSupport.unpark(s.thread);
+            LockSupport.unpark(s.thread);// 该结点不为为空，唤醒即可
         }
     }
 
