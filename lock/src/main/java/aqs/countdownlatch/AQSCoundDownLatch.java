@@ -30,8 +30,12 @@ public class AQSCoundDownLatch {
 
     private volatile int state;
 
+    /*等待队列的队首结点(懒加载，这里体现为竞争失败的情况下，加入同步队列的线程执行到enq方法的时候会创
+        建一个Head结点)。该结点只能被setHead方法修改。并且结点的waitStatus不能为CANCELLED*/
+    //仅仅代表头结点，里面没有存放线程引用
     private transient volatile Node head;
 
+    /**等待队列的尾节点，也是懒加载的。（enq方法）。只在加入新的阻塞结点的情况下修改*/
     private transient volatile Node tail;
 
     public AQSCoundDownLatch(int count) {
@@ -44,11 +48,14 @@ public class AQSCoundDownLatch {
     //Node结点是对每一个等待获取资源的线程的封装，其包含了需要同步的线程本身及其等待状态
     static final class Node {
 
+        //标记线程是因为获取共享资源失败被阻塞添加到队列中的
         static final Node SHARED = new Node(); //共享模式
 
+        //表示线程因为获取独占资源失败被阻塞添加到队列中的
         static final Node EXCLUSIVE = null; //独占模式
 
         //表示当前结点已取消调度。当timeout或被中断（响应中断的情况下），会触发变更为此状态，进入该状态后的结点将不会再变化
+        //表示该线程因为被中断或者等待超时，需要从等待队列中取消等待
         static final int CANCELLED = 1;
         //被标识为该等待唤醒状态的后继结点，当其前继结点的线程释放了同步锁或被取消，将会通知该后继结点的线程执行。说白了，就是处于唤醒状态，只要前继结点释放锁，就会通知标识为SIGNAL状态的后继结点的线程执行
         static final int SIGNAL = -1;
@@ -190,6 +197,7 @@ public class AQSCoundDownLatch {
     }
 
     private void doReleaseShared() {
+        //遵循FIFO的规则唤醒线程
         for (; ; ) {
             Node h = head;
             if (h != null
