@@ -12,8 +12,9 @@ import java.util.concurrent.locks.LockSupport;
  * 非公平锁测试：https://www.cnblogs.com/fsmly/p/11274572.html https://blog.csdn.net/qq_35818427/article/details/103993439
  * @date 2020/1/16
  */
-public class AQSNonfairReentrantLock {
+public class AQSNonfairReentrantLock extends AQSAbstractOwnableSynchronizer {
 
+    //同步状态
     private volatile int state;
 
     /*等待队列的队首结点(懒加载，这里体现为竞争失败的情况下，加入同步队列的线程执行到enq方法的时候会创
@@ -174,7 +175,7 @@ public class AQSNonfairReentrantLock {
                 final Node p = node.predecessor();  //当前节点的前驱节点
                 if (p == head //如果当前节点的前驱节点是head
                         && tryAcquire(arg)) {   //如果尝试获取锁成功
-                    setHead(node);  //单线程更新？？？？？
+                    setHead(node);  //单线程更新
                     p.next = null; // help GC
                     failed = false;
                     return interrupted;
@@ -183,8 +184,6 @@ public class AQSNonfairReentrantLock {
                 //的waitStatus设置为-1(SIGNAL),并且park自己，等待前驱结点的唤醒
                 if (shouldParkAfterFailedAcquire(p, node)   //如果获取锁失败，判断是否需要阻塞当期线程
                         && parkAndCheckInterrupt()) {   //阻塞当期线程，并返回当期线程的中断标识并清除中断标识
-
-
                     interrupted = true;
                 }
             }
@@ -201,8 +200,9 @@ public class AQSNonfairReentrantLock {
      * 该函数完成的功能就是取消当前线程对资源的获取，即设置该结点的状态为CANCELLED
      */
     private void cancelAcquire(Node node) {
-        if (node == null)
+        if (node == null) {
             return;
+        }
 
         node.thread = null;
 
@@ -270,7 +270,7 @@ public class AQSNonfairReentrantLock {
     // 进行park操作并且返回该线程是否被中断
     private final boolean parkAndCheckInterrupt() {
         LockSupport.park(this);   // 在许可可用之前禁用当前线程，并且设置了blocker
-        return Thread.interrupted();    // 当前线程是否已被中断，并清除中断标记位
+        return Thread.interrupted();    // 当前线程是否已中断，并清除中断标记位
     }
 
     //根据前驱节点中的waitStatus来判断是否需要阻塞当前线程
@@ -358,7 +358,7 @@ public class AQSNonfairReentrantLock {
         }
         if (s != null) {
             //唤醒线程
-            LockSupport.unpark(s.thread);// 该结点不为为空，唤醒即可
+            LockSupport.unpark(s.thread);// 该结点不为空，唤醒即可
         }
     }
 
@@ -434,19 +434,6 @@ public class AQSNonfairReentrantLock {
         return false; //当前线程获取锁失败时，返回false，成功返回true
     }
 
-    protected final boolean compareAndSetState(int expect, int update) {
-        // See below for intrinsics setup to support this
-        return unsafe.compareAndSwapInt(this, stateOffset, expect, update);
-    }
-
-    protected final void setState(int newState) {
-        state = newState;
-    }
-
-    protected final int getState() {
-        return state;
-    }
-
     private static Unsafe unsafe = null;
 
     static {
@@ -465,21 +452,13 @@ public class AQSNonfairReentrantLock {
     private static final long waitStatusOffset;
     private static final long nextOffset;
 
-    static final long spinForTimeoutThreshold = 1000L;
-
     static {
         try {
-            stateOffset = unsafe.objectFieldOffset
-                    (AQSNonfairReentrantLock.class.getDeclaredField("state"));
-            headOffset = unsafe.objectFieldOffset
-                    (AQSNonfairReentrantLock.class.getDeclaredField("head"));
-            tailOffset = unsafe.objectFieldOffset
-                    (AQSNonfairReentrantLock.class.getDeclaredField("tail"));
-            waitStatusOffset = unsafe.objectFieldOffset
-                    (Node.class.getDeclaredField("waitStatus"));
-            nextOffset = unsafe.objectFieldOffset
-                    (Node.class.getDeclaredField("next"));
-
+            stateOffset = unsafe.objectFieldOffset(AQSNonfairReentrantLock.class.getDeclaredField("state"));
+            headOffset = unsafe.objectFieldOffset(AQSNonfairReentrantLock.class.getDeclaredField("head"));
+            tailOffset = unsafe.objectFieldOffset(AQSNonfairReentrantLock.class.getDeclaredField("tail"));
+            waitStatusOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("waitStatus"));
+            nextOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("next"));
         } catch (Exception ex) {
             throw new Error(ex);
         }
@@ -491,11 +470,8 @@ public class AQSNonfairReentrantLock {
         return (Unsafe) theUnsafeField.get(null);
     }
 
-    private static final boolean compareAndSetWaitStatus(Node node,
-                                                         int expect,
-                                                         int update) {
-        return unsafe.compareAndSwapInt(node, waitStatusOffset,
-                expect, update);
+    private static final boolean compareAndSetWaitStatus(Node node, int expect, int update) {
+        return unsafe.compareAndSwapInt(node, waitStatusOffset, expect, update);
     }
 
     private final boolean compareAndSetTail(Node expect, Node update) {
@@ -506,10 +482,20 @@ public class AQSNonfairReentrantLock {
         return unsafe.compareAndSwapObject(this, headOffset, null, update);
     }
 
-    private static final boolean compareAndSetNext(Node node,
-                                                   Node expect,
-                                                   Node update) {
+    private static final boolean compareAndSetNext(Node node, Node expect, Node update) {
         return unsafe.compareAndSwapObject(node, nextOffset, expect, update);
+    }
+
+    protected final boolean compareAndSetState(int expect, int update) {
+        return unsafe.compareAndSwapInt(this, stateOffset, expect, update);
+    }
+
+    protected final void setState(int newState) {
+        state = newState;
+    }
+
+    protected final int getState() {
+        return state;
     }
 
 }

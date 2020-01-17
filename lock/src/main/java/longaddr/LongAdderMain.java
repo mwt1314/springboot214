@@ -144,7 +144,7 @@ public class LongAdderMain {
                             cells = rs; // 重新赋值cells为新数组
                         }
                     } finally {
-                        cellsBusy = 0;   // 释放锁
+                        cellsBusy = 0;   //此时单线程 释放锁
                     }
                     collide = false;    // 已解决冲突
                     continue;        // 使用扩容后的新数组重新尝试
