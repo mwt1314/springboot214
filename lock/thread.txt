@@ -1,7 +1,7 @@
 线程状态：
 NEW（新建）：新创建了一个线程对象，但还没有调用start()方法
-RUNNABLE（可运行）：Java线程中将就绪（ready）和运行中（running）两种状态笼统的称为“运行”，包括了操作系统线程状态中的Running和Ready，也就是处于此状态的线程可能正在运行，也可能正在等待系统资源，如等待CPU为它分配时间片，如等待网络IO读取数据
-                   获取CPU的使用权，此时处于就绪状态（ready）。就绪状态的线程在获得CPU时间片后变为运行中状态（running）
+RUNNABLE（可运行）：Java线程中将就绪（ready）和运行中（running）两种状态笼统的称为“运行”，包括了操作系统线程状态中的Running和Ready，也就是处于此状态的线程可能正在运行，也可能正在等待系统资源，
+                    如等待CPU为它分配时间片，如等待网络IO读取数据获取CPU的使用权，此时处于就绪状态（ready）。就绪状态的线程在获得CPU时间片后变为运行中状态（running）
 BLOCKED（阻塞）：表示线程阻塞于锁。当一个线程要进入synchronized语句块/方法时，如果没有获取到锁（waiting to enter monitor），会变成BLOCKED，直到另一个线程走完临界区或发生了相应锁对象的wait()操作后，它才有机会去争夺进入临界区的权利
                 处于BLOCKED状态的线程，即使对其调用 thread.interrupt()也无法改变其阻塞状态，因为interrupt()方法只是设置线程的中断状态，即做一个标记，不能唤醒处于阻塞状态的线程
                 ReentrantLock.lock()操作后进入的是WAITING状态，其内部调用的是LockSupport.park()方法
