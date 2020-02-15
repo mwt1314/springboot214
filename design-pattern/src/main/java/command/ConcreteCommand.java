@@ -5,12 +5,12 @@ class ConcreteCommand implements Command {
 
     private Receiver receiver;
 
-    ConcreteCommand() {
-        receiver = new Receiver();
+    public ConcreteCommand() {
+        this.receiver = new Receiver();
     }
 
     public void execute() {
-        receiver.action();
+        this.receiver.action();
     }
 
 }

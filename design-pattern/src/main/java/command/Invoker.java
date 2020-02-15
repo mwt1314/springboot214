@@ -5,6 +5,10 @@ public class Invoker {
 
     private Command command;
 
+    public Invoker() {
+
+    }
+
     public Invoker(Command command) {
         this.command = command;
     }
