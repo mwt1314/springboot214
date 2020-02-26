@@ -127,7 +127,9 @@ CAS问题：
           在变量前面追加上版本号，每次变量更新的时候把版本号加一，那么A-B-A 就会变成1A-2B-3A
 2.循环时间开销大：自旋CAS如果长时间不成功，会给CPU带来非常大的执行开销（时刻a的内存值和时刻b的内存值比较，如果相等则更新，否则一直循环）
 3.只能保证一个共享变量的原子操作：
-
+解决方案：
+AtomicMarkableReference<V>  维护了boolean变量表示引用变量是否被更改过
+AtomicStampedReference<V>  维护了int类型的变量表示版本号
 
 JDK1.6对synchronized关键字做了很多优化，包括自旋锁、适应性自旋锁、锁消除、锁粗化、偏向锁、轻量级锁等技术来减少锁操作的开销
 
@@ -156,13 +158,6 @@ AQS:AbstractQueuedSynchronizer简称
 抽象的队列式的同步器，AQS定义了一套多线程访问共享资源的同步器框架，许多同步类实现都依赖于它
 AQS维护了一个volatile int state（代表共享资源）和一个FIFO线程等待队列（多线程争用资源被阻塞时会进入此队列）
 AQS定义两种资源共享方式：Exclusive（独占，只有一个线程能执行，如ReentrantLock）和Share（共享，多个线程可同时执行，如Semaphore/CountDownLatch）
-
-
-
-AtomicMarkableReference<V>  维护了boolean变量表示引用变量是否被更改过
-AtomicStampedReference<V>  维护了int类型的变量表示版本号
-
-
 
 
 

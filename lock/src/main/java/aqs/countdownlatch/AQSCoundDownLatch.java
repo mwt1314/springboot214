@@ -35,7 +35,9 @@ public class AQSCoundDownLatch {
     //仅仅代表头结点，里面没有存放线程引用
     private transient volatile Node head;
 
-    /**等待队列的尾节点，也是懒加载的。（enq方法）。只在加入新的阻塞结点的情况下修改*/
+    /**
+     * 等待队列的尾节点，也是懒加载的。（enq方法）。只在加入新的阻塞结点的情况下修改
+     */
     private transient volatile Node tail;
 
     public AQSCoundDownLatch(int count) {
@@ -140,6 +142,7 @@ public class AQSCoundDownLatch {
             thread.start();
         }
         try {
+            //是可以响应中断的：其他线程调用了当前线程的interrupt（）方法中断了当前线程，当前线程会抛出InterruptedException异常后返回
             aqsCoundDownLatch.await();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -253,6 +256,7 @@ public class AQSCoundDownLatch {
 
     public final void acquireSharedInterruptibly(int arg)
             throws InterruptedException {
+        //清楚中断标识，并返回线程中断状态
         if (Thread.interrupted()) { //await响应中断
             throw new InterruptedException();
         }
@@ -274,25 +278,26 @@ public class AQSCoundDownLatch {
         return (getState() == 0) ? 1 : -1;
     }
 
-    private void doAcquireSharedInterruptibly(int arg)
-            throws InterruptedException {
+    private void doAcquireSharedInterruptibly(int arg) throws InterruptedException {
         final Node node = addWaiter(Node.SHARED);   //当前节点以共享的方式加入到链表尾部
         boolean failed = true;  //获取共享锁失败了
         try {
             for (; ; ) {
-                final Node p = node.predecessor();
+                final Node p = node.predecessor(); //p是node的前置节点
                 if (p == head) {
                     int r = tryAcquireShared(arg);  //尝试获取共享锁state，如果state=0获取成功返回1，否则获取失败返回-1
                     if (r >= 0) {
-                        //此时，获取共享锁state=0成功
+                        //此时，获取共享锁state=0成功，准备唤醒线程了
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
                         failed = false;
                         return;
                     }
                 }
-                if (shouldParkAfterFailedAcquire(p, node) &&
-                        parkAndCheckInterrupt()) {
+
+                if (shouldParkAfterFailedAcquire(p, node) &&    //
+                        parkAndCheckInterrupt()) {  //使当前线程进入等待状态，并返回当前线程的中断标识
+                    //当前线程被中断了，直接抛出异常
                     throw new InterruptedException();
                 }
             }
@@ -359,13 +364,13 @@ public class AQSCoundDownLatch {
         if (ws == Node.SIGNAL) {    //如果前驱节点的状态为signal
             return true;
         }
-        if (ws > 0) {   //如果前节点状态大于0表明已经中断，
+        if (ws > 0) {   //如果前节点状态大于0表明已经中断，就是CANCELLED状态
             do {
                 node.prev = pred = pred.prev;
-            } while (pred.waitStatus > 0);
+            } while (pred.waitStatus > 0);  //移除当前节点前面所有CANCELLED状态的节点
             pred.next = node;
         } else {
-            compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+            compareAndSetWaitStatus(pred, ws, Node.SIGNAL); //尝试修改前驱结点的waitStatus=SIGNAL
         }
         return false;   //只有前驱节点状态为SIGNAL才返回真
     }
@@ -430,7 +435,6 @@ public class AQSCoundDownLatch {
 
     private Node addWaiter(Node mode) {
         Node node = new Node(Thread.currentThread(), mode); //首先new一个节点，该节点维护一个线程引用
-        // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;
         if (pred != null) {
             node.prev = pred;
@@ -482,16 +486,11 @@ public class AQSCoundDownLatch {
 
     static {
         try {
-            stateOffset = unsafe.objectFieldOffset
-                    (AQSCoundDownLatch.class.getDeclaredField("state"));
-            headOffset = unsafe.objectFieldOffset
-                    (AQSCoundDownLatch.class.getDeclaredField("head"));
-            tailOffset = unsafe.objectFieldOffset
-                    (AQSCoundDownLatch.class.getDeclaredField("tail"));
-            waitStatusOffset = unsafe.objectFieldOffset
-                    (Node.class.getDeclaredField("waitStatus"));
-            nextOffset = unsafe.objectFieldOffset
-                    (Node.class.getDeclaredField("next"));
+            stateOffset = unsafe.objectFieldOffset(AQSCoundDownLatch.class.getDeclaredField("state"));
+            headOffset = unsafe.objectFieldOffset(AQSCoundDownLatch.class.getDeclaredField("head"));
+            tailOffset = unsafe.objectFieldOffset(AQSCoundDownLatch.class.getDeclaredField("tail"));
+            waitStatusOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("waitStatus"));
+            nextOffset = unsafe.objectFieldOffset(Node.class.getDeclaredField("next"));
 
         } catch (Exception ex) {
             throw new Error(ex);
@@ -504,11 +503,8 @@ public class AQSCoundDownLatch {
         return (Unsafe) theUnsafeField.get(null);
     }
 
-    private static final boolean compareAndSetWaitStatus(Node node,
-                                                         int expect,
-                                                         int update) {
-        return unsafe.compareAndSwapInt(node, waitStatusOffset,
-                expect, update);
+    private static final boolean compareAndSetWaitStatus(Node node, int expect, int update) {
+        return unsafe.compareAndSwapInt(node, waitStatusOffset, expect, update);
     }
 
     private final boolean compareAndSetTail(Node expect, Node update) {
@@ -519,9 +515,7 @@ public class AQSCoundDownLatch {
         return unsafe.compareAndSwapObject(this, headOffset, null, update);
     }
 
-    private static final boolean compareAndSetNext(Node node,
-                                                   Node expect,
-                                                   Node update) {
+    private static final boolean compareAndSetNext(Node node, Node expect, Node update) {
         return unsafe.compareAndSwapObject(node, nextOffset, expect, update);
     }
 
