@@ -256,8 +256,8 @@ public class AQSCoundDownLatch {
 
     public final void acquireSharedInterruptibly(int arg)
             throws InterruptedException {
-        //清楚中断标识，并返回线程中断状态
-        if (Thread.interrupted()) { //await响应中断
+        //        //清楚中断标识，并返回线程中断状态
+        if (Thread.interrupted()) { //响应中断
             throw new InterruptedException();
         }
 

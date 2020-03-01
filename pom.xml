@@ -32,6 +32,7 @@
         <module>java-proxy</module>
         <module>java-collection</module>
         <module>algorithm</module>
+        <module>mq</module>
     </modules>
 
     <parent>
