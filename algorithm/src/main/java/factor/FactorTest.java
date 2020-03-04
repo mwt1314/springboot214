@@ -58,21 +58,27 @@ public class FactorTest {
     private List<Integer> getPrimeFactors(int num) {
         List<Integer> factorList = new ArrayList<>();
 
-        for (int i = 2; i <= Math.sqrt(num); i++) {
-            if (num % i == 0) {
-                factorList.add(i);
-                num /= i;
-                i--;
+        num = Math.abs(num);
+        int i = 2;
+        int k = 2;
+        while (num >= k) {
+            if (num == k) {
+                factorList.add(k);
+                break;
+            } else if (num % k == 0) {
+                factorList.add(k);
+                num = num / k;
+            } else {
+                k++;
             }
         }
-        factorList.add(num);
 
         /*int start = 2;
         while (start < num) {
             if (num % start == 0) {
                 factorList.add(start);
                 num /= start;
-                start = 2;
+            //    start = 2;
             } else {
                 start++;
             }
