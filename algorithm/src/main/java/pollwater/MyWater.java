@@ -106,7 +106,7 @@ public class MyWater {
             return small + large == TARGET_WATER;
         }
 
-        public boolean isRepeat() {
+        public boolean isRepeat() { //倒水后重复了
             int nowSmall = this.small;
             int nowLarge = this.large;
             Node parentNode, node = this.parent;
