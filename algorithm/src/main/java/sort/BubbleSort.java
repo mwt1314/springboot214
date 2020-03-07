@@ -4,11 +4,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class BubbleSort {
 
-    private int[] arr = {2, 1, 3, 9, 1, 7, 0, 3, 5, 9};
+    private int[] arr = {2, 1, 3, 8, 1, 7, 0, 3, 5, 9};
 
     @Before
     public void printBefore() {
@@ -116,7 +117,7 @@ public class BubbleSort {
     @Test
     public void mergeSort() {
         System.out.println("归并排序，");
-        MergeSort(arr);
+        System.out.println("result is:" + Arrays.toString(MergeSort(arr)));;
     }
 
     public int[] MergeSort(int[] array) {
@@ -135,6 +136,9 @@ public class BubbleSort {
      * @return
      */
     public int[] merge(int[] left, int[] right) {
+        System.out.println("merge......");
+        System.out.println(Arrays.toString(left));
+        System.out.println(Arrays.toString(right));
         int[] result = new int[left.length + right.length];
         for (int index = 0, i = 0, j = 0; index < result.length; index++) {
             if (i >= left.length)
@@ -153,31 +157,259 @@ public class BubbleSort {
     @Test
     public void quickSort() {
         System.out.println("快速排序，");
-
+        QuickSort(arr, 0, arr.length - 1);
     }
+
+    /**
+     * 快速排序方法
+     *
+     * @param array
+     * @param start
+     * @param end
+     * @return
+     */
+    public static int[] QuickSort(int[] array, int start, int end) {
+        if (array.length < 1 || start < 0 || end >= array.length || start > end) return null;
+        int smallIndex = partition(array, start, end);
+        if (smallIndex > start)
+            QuickSort(array, start, smallIndex - 1);
+        if (smallIndex < end)
+            QuickSort(array, smallIndex + 1, end);
+        return array;
+    }
+
+    /**
+     * 快速排序算法——partition
+     *
+     * @param array
+     * @param start
+     * @param end
+     * @return
+     */
+    public static int partition(int[] array, int start, int end) {
+        int pivot = (int) (start + Math.random() * (end - start + 1));
+        int smallIndex = start - 1;
+        swap(array, pivot, end);
+        for (int i = start; i <= end; i++)
+            if (array[i] <= array[end]) {
+                smallIndex++;
+                if (i > smallIndex)
+                    swap(array, i, smallIndex);
+            }
+        return smallIndex;
+    }
+
+    /**
+     * 交换数组内两个元素
+     *
+     * @param array
+     * @param i
+     * @param j
+     */
+    public static void swap(int[] array, int i, int j) {
+        int temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+
 
     @Test
     public void heapSort() {
         System.out.println("堆排序，");
+        HeapSort(arr);
+    }
 
+    //声明全局变量，用于记录数组array的长度；
+    static int len;
+
+    /**
+     * 堆排序算法
+     *
+     * @param array
+     * @return
+     */
+    public static int[] HeapSort(int[] array) {
+        len = array.length;
+        if (len < 1) return array;
+        //1.构建一个最大堆
+        buildMaxHeap(array);
+        //2.循环将堆首位（最大值）与末位交换，然后在重新调整最大堆
+        while (len > 0) {
+            swap(array, 0, len - 1);
+            len--;
+            adjustHeap(array, 0);
+        }
+        return array;
+    }
+
+    /**
+     * 建立最大堆
+     *
+     * @param array
+     */
+    public static void buildMaxHeap(int[] array) {
+        //从最后一个非叶子节点开始向上构造最大堆
+        for (int i = (len / 2 - 1); i >= 0; i--) { //感谢 @让我发会呆 网友的提醒，此处应该为 i = (len/2 - 1)
+            adjustHeap(array, i);
+        }
+    }
+
+    /**
+     * 调整使之成为最大堆
+     *
+     * @param array
+     * @param i
+     */
+    public static void adjustHeap(int[] array, int i) {
+        int maxIndex = i;
+        //如果有左子树，且左子树大于父节点，则将最大指针指向左子树
+        if (i * 2 < len && array[i * 2] > array[maxIndex])
+            maxIndex = i * 2;
+        //如果有右子树，且右子树大于父节点，则将最大指针指向右子树
+        if (i * 2 + 1 < len && array[i * 2 + 1] > array[maxIndex])
+            maxIndex = i * 2 + 1;
+        //如果父节点不是最大值，则将父节点与最大值交换，并且递归调整与父节点交换的位置。
+        if (maxIndex != i) {
+            swap(array, maxIndex, i);
+            adjustHeap(array, maxIndex);
+        }
     }
 
     @Test
     public void countingSort() {
         System.out.println("计数排序，");
+        CountingSort(arr);
+    }
 
+    /**
+     * 计数排序
+     *
+     * @param array
+     * @return
+     */
+    public static int[] CountingSort(int[] array) {
+        if (array.length == 0) return array;
+        int bias, min = array[0], max = array[0];
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] > max)
+                max = array[i];
+            if (array[i] < min)
+                min = array[i];
+        }
+        bias = 0 - min;
+        int[] bucket = new int[max - min + 1];
+        Arrays.fill(bucket, 0);
+        for (int i = 0; i < array.length; i++) {
+            bucket[array[i] + bias]++;
+        }
+        int index = 0, i = 0;
+        while (index < array.length) {
+            if (bucket[i] != 0) {
+                array[index] = i - bias;
+                bucket[i]--;
+                index++;
+            } else
+                i++;
+        }
+        return array;
     }
 
     @Test
     public void bucketSort() {
         System.out.println("桶排序，");
+        ArrayList<Integer> list = new ArrayList<>();
+        for (int i : arr) {
+            list.add(i);
+        }
+        Object[] sort = new Object[arr.length];
+        BucketSort(list, arr.length >>> 1).toArray(sort);
+        System.out.println(Arrays.toString(sort));
+    }
 
+    /**
+     * 桶排序
+     *
+     * @param array
+     * @param bucketSize
+     * @return
+     */
+    public static ArrayList<Integer> BucketSort(ArrayList<Integer> array, int bucketSize) {
+        if (array == null || array.size() < 2)
+            return array;
+        int max = array.get(0), min = array.get(0);
+        // 找到最大值最小值
+        for (int i = 0; i < array.size(); i++) {
+            if (array.get(i) > max)
+                max = array.get(i);
+            if (array.get(i) < min)
+                min = array.get(i);
+        }
+        int bucketCount = (max - min) / bucketSize + 1;
+        ArrayList<ArrayList<Integer>> bucketArr = new ArrayList<>(bucketCount);
+        ArrayList<Integer> resultArr = new ArrayList<>();
+        for (int i = 0; i < bucketCount; i++) {
+            bucketArr.add(new ArrayList<Integer>());
+        }
+        for (int i = 0; i < array.size(); i++) {
+            bucketArr.get((array.get(i) - min) / bucketSize).add(array.get(i));
+        }
+        for (int i = 0; i < bucketCount; i++) {
+            if (bucketSize == 1) { // 如果带排序数组中有重复数字时  感谢 @见风任然是风 朋友指出错误
+                for (int j = 0; j < bucketArr.get(i).size(); j++)
+                    resultArr.add(bucketArr.get(i).get(j));
+            } else {
+                if (bucketCount == 1)
+                    bucketSize--;
+                ArrayList<Integer> temp = BucketSort(bucketArr.get(i), bucketSize);
+                for (int j = 0; j < temp.size(); j++)
+                    resultArr.add(temp.get(j));
+            }
+        }
+        return resultArr;
     }
 
     @Test
     public void radixSort() {
         System.out.println("基数排序，");
+        RadixSort(arr);
+    }
 
+    /**
+     * 基数排序
+     *
+     * @param array
+     * @return
+     */
+    public static int[] RadixSort(int[] array) {
+        if (array == null || array.length < 2)
+            return array;
+        // 1.先算出最大数的位数；
+        int max = array[0];
+        for (int i = 1; i < array.length; i++) {
+            max = Math.max(max, array[i]);
+        }
+        int maxDigit = 0;
+        while (max != 0) {
+            max /= 10;
+            maxDigit++;
+        }
+        int mod = 10, div = 1;
+        ArrayList<ArrayList<Integer>> bucketList = new ArrayList<>();
+        for (int i = 0; i < 10; i++)
+            bucketList.add(new ArrayList<>());
+        for (int i = 0; i < maxDigit; i++, mod *= 10, div *= 10) {
+            for (int j = 0; j < array.length; j++) {
+                int num = (array[j] % mod) / div;
+                bucketList.get(num).add(array[j]);
+            }
+            int index = 0;
+            for (int j = 0; j < bucketList.size(); j++) {
+                for (int k = 0; k < bucketList.get(j).size(); k++)
+                    array[index++] = bucketList.get(j).get(k);
+                bucketList.get(j).clear();
+            }
+        }
+        return array;
     }
 
     @After
