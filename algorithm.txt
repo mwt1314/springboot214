@@ -18,7 +18,10 @@ n皇后问题：在8*8格的国际象棋上摆放8个皇后，使其不能互相
 
     不使用递归实现：https://blog.csdn.net/weixin_42636076/article/details/81031580?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task
 
-SubArray：求任意数组中最大项子数组的和
+动态规划---最大子序和问题 (LeetCode 53)：
+    给定一个整数数组 nums ，找到一个具有最大和的连续子数组（子数组最少包含一个元素），返回其最大和
+
+prim算法：
 
 谁是窃贼：
     公安人员审问四名窃贼嫌疑犯。已知，这四人当中仅有一名是窃贼，还知道这四人中每人要么是诚实的，要么总是说谎。在回答公安人员的问题中：
@@ -31,6 +34,15 @@ SubArray：求任意数组中最大项子数组的和
 贪心算法：又称贪婪算法(Greedy Algorithm)，是指在对问题求解时，总是做出在当前看来是最好的选择。也就是说，不从整体最优解出发来考虑，它所做出的仅是在某种意义上的局部最优解。
     它是一种分阶段的工作，在每一个阶段，可以认为所做决定是最好的，而不考虑将来的后果。这种“眼下能够拿到的就拿”的策略是这类算法名称的来源
     贪心策略适用的前提是：局部最优策略能导致产生全局最优解。也就是当算法终止的时候，局部最优等于全局最优
+
+反转字符串：@leetcodecn.digui.实现反转字符串的方式
+    1.递归反转字符串
+    2.递归反转字节数组
+    3.for循环反转字节数组
+
+Data structure and Algorithm in Java
+https://blog.csdn.net/qq_39147389/article/details/82252924
+分治法：
 
 倒水问题：
     1.现在有3L，4L的杯子，无限多的水，要求用这两个容器倒出5L的水，如何求解? @pollwater.MyWater

@@ -1,4 +1,4 @@
-package thief;
+package binary;
 
 /**
  * 谁是窃贼：
@@ -9,7 +9,7 @@ package thief;
  * 丁说：“我没有偷”
  * 请根据这四人的谈话判断谁是盗窃者
  */
-public class WhoIsTheThief {
+public class 谁是小偷 {
 
     public static void main(String[] args) {
         for (int i = 0; i < 4; i++) {

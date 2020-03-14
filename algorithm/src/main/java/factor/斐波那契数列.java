@@ -1,13 +1,21 @@
-package fibonacci;
+package factor;
 
-public class FibonacciTest {
+public class 斐波那契数列 {
 
     private static final int N = 47;
 
     public static void main(String[] args) {
-        new Thread(() -> System.out.println(fibonacci(N))).start();
-        new Thread(() -> System.out.println(fibonacci2(N))).start();
-        new Thread(() -> System.out.println("尾递归" + Fib(N))).start();
+        System.out.println("已上传到CSDN");
+        System.out.println("斐波那契数列");
+
+        System.out.println("递归实现斐波那契数列");
+        System.out.println(fibonacci(N));
+
+        System.out.println("for循环实现斐波那契数列");
+        System.out.println(fibonacci2(N));
+
+        System.out.println("尾递归斐波那契数列");
+        System.out.println(Fib(N));
     }
 
     //使用递归的方法计算斐波那契数列第n项

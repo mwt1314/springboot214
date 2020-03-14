@@ -1,4 +1,4 @@
-package sort;
+package factor;
 
 import org.junit.After;
 import org.junit.Before;
@@ -7,7 +7,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class BubbleSort {
+public class 排序算法 {
 
     private int[] arr = {2, 1, 3, 8, 1, 7, 0, 3, 5, 9};
 
