@@ -5,16 +5,9 @@ import java.util.*;
 public class 三数之和15 {
 
     public static void main(String[] args) {
-        // 10 10 // 00 22
-
-        int x = 3, y = 2, z = 2;
-        System.out.println(x ^ y ^ z);
-
-
-        System.out.println("15. 三数之和" +
-                "给你一个包含 n 个整数的数组 nums，判断 nums 中是否存在三个元素 a，b，c ，使得 a + b + c = 0 ？请你找出所有满足条件且不重复的三元组。" +
+        System.out.println("15. 三数之和：给你一个包含 n 个整数的数组 nums，判断 nums 中是否存在三个元素 a，b，c ，" +
+                "使得 a + b + c = 0 ？请你找出所有满足条件且不重复的三元组。" +
                 "注意：答案中不可以包含重复的三元组。" +
-                "" +
                 "示例：" +
                 "给定数组 nums = [-1, 0, 1, 2, -1, -4]，" +
                 "满足要求的三元组集合为：" +
@@ -30,44 +23,61 @@ public class 三数之和15 {
         }
     }
 
-    public static List<List<Integer>> threeSum(int[] nums) {
+    private static List<List<Integer>> threeSum(int[] nums) {
         int len;
         List<List<Integer>> list = new ArrayList<>();
         if (nums == null || (len = nums.length) == 0) return list;
-        int targetVal = 0, a, b, c;
+        int targetVal = 0, sum, left, right;
+        Arrays.sort(nums);
         for (int i = 0; i < len; i++) {
-            a = nums[i];
-            for (int j = i + 1; j < len; j++) {
-                b = nums[j];
-                for (int k = j + 1; k < len; k++) {
-                    c = nums[k];
-                    if (a + b + c == targetVal && !exist(list, a, b, c)) {
-                        List<Integer> l = new ArrayList<>();
-                        l.add(a);
-                        l.add(b);
-                        l.add(c);
-                        list.add(l);
+            if (nums[i] > targetVal) break;
+            left = i + 1;
+            right = len - 1;
+            while (left < right) {
+                if (left > i + 1 && nums[left] == nums[left - 1]) {// 如果当前值与前一个相同，则跳过，保证不重复。
+                    // left > i + 1保证st位置的数和i位置的数不是一个
+                    left++;
+                    continue;
+                }
+                if ((sum = nums[i] + nums[left] + nums[right]) == targetVal) {
+                    list.add(Arrays.asList(nums[i], nums[left], nums[right]));
+                    while (left < right && nums[left] == nums[left + 1]) {
+                        left++;
                     }
+                    while (left < right && nums[right] == nums[right - 1]) {
+                        right--;
+                    }
+                    left++;
+                    right--;
+                } else if (sum < targetVal) {
+                    left++;
+                } else {
+                    right--;
                 }
             }
         }
         return list;
     }
 
-    private static boolean exist(List<List<Integer>> list, int a, int b, int c) {
-        ArrayList<Integer> ss = new ArrayList<Integer>() {{
-            add(a);
-            add(b);
-            add(c);
-        }};
-        Collections.sort(ss);
-        for (List<Integer> kl : list) {
-           Collections.sort(kl);
-            if (kl.containsAll(ss)) return true;
 
-            //    if (a != kl.get(0) || b != kl.get(1) || c != kl.get(2)) return false;
+    private static List<List<Integer>> threeSum2(int[] nums) {
+        int len;
+        List<List<Integer>> list = new ArrayList<>();
+        if (nums == null || (len = nums.length) == 0) return list;
+        int targetVal = 0;
+        for (int i = 0; i < len; i++) {
+            int twoSum = targetVal - nums[i];
+            Map<Integer, Integer> map = new HashMap<>();
+            for (int j = i + 1; j < len; j++) {
+                if (map.containsKey(twoSum - nums[j])) {
+                    list.add(Arrays.asList(nums[i], nums[j], twoSum - nums[j]));
+                } else {
+                    map.put(nums[j], j);
+                }
+            }
         }
-        return false;
+        return list;
     }
+
 
 }

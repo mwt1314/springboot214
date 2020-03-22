@@ -4,6 +4,9 @@ public class 整数反转7 {
 
     public static void main(String[] args) {
         System.out.println(reverse(1534236469));
+        int x = Integer.parseInt("11111111111111111111111111111101", 2);
+        System.out.println(x);
+        System.out.println(Math.floor(Math.sqrt(4)));
     }
 
     public static int reverse(int x) {
