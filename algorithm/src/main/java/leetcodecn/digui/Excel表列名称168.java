@@ -1,5 +1,7 @@
 package leetcodecn.digui;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class Excel表列名称168 {
 
     public static void main(String[] args) {
@@ -18,9 +20,14 @@ public class Excel表列名称168 {
         System.out.println("逢26进1");
         System.out.println(convertToTitle(1));
         System.out.println(convertToTitle(53));
+
+        AtomicInteger num = new AtomicInteger();
+        num.getAndIncrement();
+        boolean b = num.compareAndSet(0, 1);
+
     }
 
-    public static String convertToTitle(int n) {
+    private static String convertToTitle(int n) {
         if (n > 0) {
             char[] cs = new char[26];
             for (int i = 0; i < 26; i++) {
