@@ -124,7 +124,7 @@ public class MyWater {
             return this.small + "-" + this.large;
         }
 
-        public void print() {
+        void print() {
             Node node = this;
             Stack<Node> stack = new Stack<>();
             while (node != null) {
