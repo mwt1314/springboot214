@@ -17,6 +17,10 @@ public class TestDate {
     }
 
     public void test1() {
+
+        char a = 'z';
+        System.out.println(a - 'a');
+
         Date date = new Date();
         String name1 = "wangerbei";
         test2(date, name1);

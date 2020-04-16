@@ -1,0 +1,50 @@
+jdk1.8 java.util.Vector源码分析：
+    底层数据结构是数组，查询快，增删慢
+    线程安全synchronized，效率低
+    底层数组的扩容规则：当前容量 + 增量
+public class Vector<E>{
+
+    protected Object[] elementData; //底层使用数组来存储元素
+    protected int elementCount; //等同于size
+    protected int capacityIncrement; //数组扩增的增量大小
+
+    public Vector() {
+        this(10);   //默认初始化底层数组大小为10，增量为0
+    }
+
+    public Vector(int initialCapacity) {
+        this(initialCapacity, 0);
+    }
+
+    public Vector(int initialCapacity, int capacityIncrement) {
+        super();
+        if (initialCapacity < 0)
+            throw new IllegalArgumentException("Illegal Capacity: "+ initialCapacity);
+        this.elementData = new Object[initialCapacity]; //初始化底层数组
+        this.capacityIncrement = capacityIncrement; //初始化底层数组的扩容增量
+    }
+
+    public synchronized boolean add(E e) { //同步，效率低下
+        modCount++;
+        ensureCapacityHelper(elementCount + 1); //考虑是否扩容数组
+        elementData[elementCount++] = e;
+        return true;
+    }
+
+    private void ensureCapacityHelper(int minCapacity) {
+        if (minCapacity - elementData.length > 0) //考虑是否需要扩容
+            grow(minCapacity);
+    }
+
+    private void grow(int minCapacity) {    //minCapacity是数组的最小容量
+        int oldCapacity = elementData.length;
+        //默认的扩容规则：当前容量 + 增量
+        int newCapacity = oldCapacity + ((capacityIncrement > 0) ? capacityIncrement : oldCapacity);
+        if (newCapacity - minCapacity < 0)
+            newCapacity = minCapacity;
+        if (newCapacity - MAX_ARRAY_SIZE > 0)
+            newCapacity = hugeCapacity(minCapacity);
+        elementData = Arrays.copyOf(elementData, newCapacity);
+    }
+
+}

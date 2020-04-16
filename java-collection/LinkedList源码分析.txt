@@ -1,0 +1,90 @@
+jdk1.8 java.util.LinkedList源码分析：
+public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>, Deque<E>, Cloneable{
+
+    transient int size = 0;
+
+    //底层维护了一个双向链表，快速删除和插入，查询比较慢
+    transient Node<E> first;    //双向链表的头结点
+    transient Node<E> last; //双向链表的尾节点
+
+    protected transient int modCount = 0;   //fast-fail机制
+
+    private static class Node<E> {  //双向链表
+        E item;
+        Node<E> next;
+        Node<E> prev;
+
+        Node(Node<E> prev, E element, Node<E> next) {
+            this.item = element;
+            this.next = next;
+            this.prev = prev;
+        }
+    }
+
+    public LinkedList() {
+    }
+
+    public LinkedList(Collection<? extends E> c) {
+        this();
+        addAll(c);
+    }
+
+    //核心方法：新增元素，链表尾部新增节点
+    public boolean add(E e) {
+        linkLast(e);
+        return true;
+    }
+
+    void linkLast(E e) {
+        final Node<E> l = last;
+        final Node<E> newNode = new Node<>(l, e, null); //新增节点
+        last = newNode; //更新尾节点
+        if (l == null)
+            first = newNode;    //初始化头结点
+        else
+            l.next = newNode;
+        size++;
+        modCount++;
+    }
+
+    //获取链表中指定位置的元素
+    public E get(int index) {
+        checkElementIndex(index);
+        return node(index).item;
+    }
+
+    //获取指定索引位置的节点
+    Node<E> node(int index) {
+        if (index < (size >> 1)) {
+            Node<E> x = first;
+            for (int i = 0; i < index; i++)
+                x = x.next;
+            return x;
+        } else {
+            Node<E> x = last;
+            for (int i = size - 1; i > index; i--)
+                x = x.prev;
+            return x;
+        }
+    }
+
+
+    public void add(int index, E element) {
+        checkPositionIndex(index);
+        if (index == size)
+            linkLast(element);  //直接在链表尾部新增节点
+        else
+            linkBefore(element, node(index));   //链表中间插入节点
+    }
+
+     void linkBefore(E e, Node<E> succ) {
+        final Node<E> pred = succ.prev;
+        final Node<E> newNode = new Node<>(pred, e, succ);
+        succ.prev = newNode;
+        if (pred == null)
+            first = newNode;
+        else
+            pred.next = newNode;
+        size++;
+        modCount++;
+    }

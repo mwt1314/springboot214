@@ -1,0 +1,21 @@
+
+jdk1.8 java.util.HashSet源码分析：
+    1） 底层数据结构是哈希表，哈希表依赖两个方法hascode ()和equals（）方法
+    2）两个方法的执行顺序：
+        首先判断hascode()值是否相同
+        是：继续执行equals()方法，看其返回值
+        是true：说明元素重复，不添加
+        是false：就直接添加元素
+        否：就直接添加到集合
+
+public class HashSet<E> extends AbstractSet<E> implements Set<E>, Cloneable, java.io.Serializable
+{
+    private transient HashMap<E,Object> map;
+
+    private static final Object PRESENT = new Object();
+
+    public HashSet() {
+        map = new HashMap<>();
+    }
+
+}
