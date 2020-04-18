@@ -30,8 +30,8 @@ public class BSTTest {
     }
 
     private <Key, Value> Value get(Node x, Key key) {
-        if (x == null) return null;
-
+    //    if (x == null) return null;
+        return null;
     }
 
     private String BSTString(Node x) {
