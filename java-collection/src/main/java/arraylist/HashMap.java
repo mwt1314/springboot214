@@ -127,10 +127,209 @@ public class HashMap<K, V> {
             super(hash, key, val, next);
         }
 
+        final TreeNode<K, V> root() {    //找到根节点
+            for (TreeNode<K, V> r = this, p; ; ) {
+                if ((p = r.parent) == null)
+                    return r;
+                r = p;
+            }
+        }
+
+        //这个方法是TreeNode中的方法，this为双向链表的头结点
+        final void treeify(Node<K, V>[] tab) {
+            TreeNode<K, V> root = null;  //红黑树的根节点
+            for (TreeNode<K, V> x = this, next; x != null; x = next) {
+                next = (TreeNode<K, V>) x.next;
+                x.left = x.right = null;
+                if (root == null) {
+                    x.parent = null;
+                    x.red = false;  //红黑树的根节点一定是黑色的
+                    root = x;
+                } else {
+                    K k = x.key;
+                    int h = x.hash;
+                    Class<?> kc = null;
+                    for (TreeNode<K, V> p = root; ; ) {
+                        int dir, ph;   //判断
+                        K pk = p.key;
+                        //根据hash值判断是左子树还是右子树
+                        if ((ph = p.hash) > h)
+                            dir = -1;
+                        else if (ph < h)
+                            dir = 1;
+                        else if ((kc == null &&
+                                (kc = comparableClassFor(k)) == null) ||
+                                (dir = compareComparables(kc, k, pk)) == 0)
+                            dir = tieBreakOrder(k, pk);
+
+                        TreeNode<K, V> xp = p;
+                        if ((p = (dir <= 0) ? p.left : p.right) == null) {
+                            x.parent = xp;
+                            if (dir <= 0)   //成为左子树
+                                xp.left = x;
+                            else
+                                xp.right = x;
+                            root = balanceInsertion(root, x);   //红黑树自平衡：上色+左旋/右旋
+                            break;
+                        }
+                    }
+                }
+            }
+            moveRootToFront(tab, root);
+        }
+
+        /**
+         * @param map   当前hashmap对象
+         * @param tab   底层table
+         * @param index 当前红黑树在table中的索引
+         * @param bit   当前table的length
+         */
+        final void split(HashMap<K, V> map, Node<K, V>[] tab, int index, int bit) {
+            TreeNode<K, V> b = this;    //当前table中某位置处的红黑树
+            // Relink into lo and hi lists, preserving order
+            TreeNode<K, V> loHead = null, loTail = null;
+            TreeNode<K, V> hiHead = null, hiTail = null;
+            int lc = 0, hc = 0;
+            for (TreeNode<K, V> e = b, next; e != null; e = next) {
+                next = (TreeNode<K, V>) e.next;
+                e.next = null;
+                if ((e.hash & bit) == 0) {  //扩容后位置不会改变
+                    if ((e.prev = loTail) == null)
+                        loHead = e;
+                    else
+                        loTail.next = e;
+                    loTail = e;
+                    ++lc;
+                } else {  //扩容后位置发生改变
+                    if ((e.prev = hiTail) == null)
+                        hiHead = e;
+                    else
+                        hiTail.next = e;
+                    hiTail = e;
+                    ++hc;
+                }
+            }
+
+            if (loHead != null) {
+                if (lc <= UNTREEIFY_THRESHOLD)
+                    tab[index] = loHead.untreeify(map);
+                else {
+                    tab[index] = loHead;
+                    if (hiHead != null) // (else is already treeified)
+                        loHead.treeify(tab);
+                }
+            }
+            if (hiHead != null) {
+                if (hc <= UNTREEIFY_THRESHOLD)
+                    tab[index + bit] = hiHead.untreeify(map);
+                else {
+                    tab[index + bit] = hiHead;
+                    if (loHead != null)
+                        hiHead.treeify(tab);
+                }
+            }
+        }
+
+        final Node<K, V> untreeify(HashMap<K, V> map) {   //红黑树转回单向链表
+            Node<K, V> hd = null, tl = null;
+            for (Node<K, V> q = this; q != null; q = q.next) {
+                Node<K, V> p = map.replacementNode(q, null);
+                if (tl == null)
+                    hd = p;
+                else
+                    tl.next = p;
+                tl = p;
+            }
+            return hd;
+        }
+
+        /**
+         * @param h hash(key)
+         * @param k key
+         * @return
+         */
+        final TreeNode<K, V> getTreeNode(int h, Object k) {
+            return ((parent != null) ? root() : this).find(h, k, null);
+        }
+
+        final TreeNode<K, V> find(int h, Object k, Class<?> kc) {
+            TreeNode<K, V> p = this;
+            do {
+                int ph, dir;
+                K pk;
+                TreeNode<K, V> pl = p.left, pr = p.right, q;
+                if ((ph = p.hash) > h)
+                    p = pl;
+                else if (ph < h)
+                    p = pr;
+                else if ((pk = p.key) == k || (k != null && k.equals(pk)))
+                    return p;
+                else if (pl == null)
+                    p = pr;
+                else if (pr == null)
+                    p = pl;
+                else if ((kc != null ||
+                        (kc = comparableClassFor(k)) != null) &&
+                        (dir = compareComparables(kc, k, pk)) != 0)
+                    p = (dir < 0) ? pl : pr;
+                else if ((q = pr.find(h, k, kc)) != null)
+                    return q;
+                else
+                    p = pl;
+            } while (p != null);
+            return null;
+        }
+
+        final TreeNode<K,V> putTreeVal(HashMap<K,V> map, Node<K,V>[] tab,
+                                       int h, K k, V v) {
+            Class<?> kc = null;
+            boolean searched = false;
+            TreeNode<K,V> root = (parent != null) ? root() : this;
+            for (TreeNode<K,V> p = root;;) {
+                int dir, ph; K pk;
+                if ((ph = p.hash) > h)
+                    dir = -1;
+                else if (ph < h)
+                    dir = 1;
+                else if ((pk = p.key) == k || (k != null && k.equals(pk)))
+                    return p;
+                else if ((kc == null &&
+                        (kc = comparableClassFor(k)) == null) ||
+                        (dir = compareComparables(kc, k, pk)) == 0) {
+                    if (!searched) {
+                        TreeNode<K,V> q, ch;
+                        searched = true;
+                        if (((ch = p.left) != null &&
+                                (q = ch.find(h, k, kc)) != null) ||
+                                ((ch = p.right) != null &&
+                                        (q = ch.find(h, k, kc)) != null))
+                            return q;
+                    }
+                    dir = tieBreakOrder(k, pk);
+                }
+
+                TreeNode<K,V> xp = p;
+                if ((p = (dir <= 0) ? p.left : p.right) == null) {
+                    Node<K,V> xpn = xp.next;
+                    TreeNode<K,V> x = map.newTreeNode(h, k, v, xpn);
+                    if (dir <= 0)
+                        xp.left = x;
+                    else
+                        xp.right = x;
+                    xp.next = x;
+                    x.parent = x.prev = xp;
+                    if (xpn != null)
+                        ((TreeNode<K,V>)xpn).prev = x;
+                    moveRootToFront(tab, balanceInsertion(root, x));
+                    return null;
+                }
+            }
+        }
+
     }
 
     //计算key的hash值，用于散列分布到数组索引上
-    //计算方式：高16位与低16位做异或运算
+    //hash函数大概的作用就是：高16bit不变，低16bit和高16bit做了一个异或，目的是减少碰撞
     //目的：int index = (n - 1) & hash(key);较少碰撞，散列均匀
     //如果直接使用key的hashcode()作为hash很容易发生碰撞。比如，在n - 1为15(0x1111)时，散列值真正生效的只是低4位。
     //当新增的键的hashcode()是2，18，34这样恰好以16的倍数为差的等差数列，就产生了大量碰撞。
@@ -139,13 +338,15 @@ public class HashMap<K, V> {
         return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
     }
 
-    Node<K, V> newNode(int hash, K key, V value, Node<K, V> next) {
-        return new Node<>(hash, key, value, next);
-    }
-
     //hashmap的核心方法：新增键值对
     public V put(K key, V value) {
         return putVal(hash(key), key, value, false, true);
+    }
+
+    //hashmap的核心方法：通过key获取value
+    public V get(Object key) {
+        Node<K, V> e;
+        return (e = getNode(hash(key), key)) == null ? null : e.value;
     }
 
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent, boolean evict) {
@@ -209,6 +410,29 @@ public class HashMap<K, V> {
         return null;
     }
 
+    final Node<K, V> getNode(int hash, Object key) {
+        Node<K, V>[] tab;
+        Node<K, V> first, e;
+        int n;
+        K k;
+        if ((tab = table) != null && (n = tab.length) > 0 &&
+                (first = tab[(n - 1) & hash]) != null) { //底层数组已经初始化并且该key对应位置处节点不为空
+            if (first.hash == hash && // always check first node
+                    ((k = first.key) == key || (key != null && key.equals(k)))) //该桶上第一个节点就是我们要找的
+                return first;
+            if ((e = first.next) != null) {
+                if (first instanceof TreeNode)  //桶已经树化
+                    return ((TreeNode<K, V>) first).getTreeNode(hash, key);
+                do {    //任然是链表，往下遍历就行了
+                    if (e.hash == hash &&
+                            ((k = e.key) == key || (key != null && key.equals(k))))
+                        return e;
+                } while ((e = e.next) != null);
+            }
+        }
+        return null;
+    }
+
     //将hash对应table下标处的单向链表转成双向链表，然后再将这一个双向链表转成红黑树
     final void treeifyBin(Node<K, V>[] tab, int hash) {
         int n, index;
@@ -231,49 +455,6 @@ public class HashMap<K, V> {
             if ((tab[index] = hd) != null)  //将双向链表头结点地址存入该hash值对应的下标处
                 hd.treeify(tab);    //着手开始将这一个双向链表转成红黑树了
         }
-    }
-
-    //这个方法是TreeNode中的方法，this为双向链表的头结点
-    final void treeify(Node<K, V>[] tab) {
-        TreeNode<K, V> root = null;  //红黑树的根节点
-        for (TreeNode<K, V> x = this, next; x != null; x = next) {
-            next = (TreeNode<K, V>) x.next;
-            x.left = x.right = null;
-            if (root == null) {
-                x.parent = null;
-                x.red = false;  //红黑树的根节点一定是黑色的
-                root = x;
-            } else {
-                K k = x.key;
-                int h = x.hash;
-                Class<?> kc = null;
-                for (TreeNode<K, V> p = root; ; ) {
-                    int dir, ph;   //判断
-                    K pk = p.key;
-                    //根据hash值判断是左子树还是右子树
-                    if ((ph = p.hash) > h)
-                        dir = -1;
-                    else if (ph < h)
-                        dir = 1;
-                    else if ((kc == null &&
-                            (kc = comparableClassFor(k)) == null) ||
-                            (dir = compareComparables(kc, k, pk)) == 0)
-                        dir = tieBreakOrder(k, pk);
-
-                    TreeNode<K, V> xp = p;
-                    if ((p = (dir <= 0) ? p.left : p.right) == null) {
-                        x.parent = xp;
-                        if (dir <= 0)   //成为左子树
-                            xp.left = x;
-                        else
-                            xp.right = x;
-                        root = balanceInsertion(root, x);   //红黑树自平衡：上色+左旋/右旋
-                        break;
-                    }
-                }
-            }
-        }
-        moveRootToFront(tab, root);
     }
 
     static <K, V> TreeNode<K, V> balanceInsertion(TreeNode<K, V> root, TreeNode<K, V> x) {
@@ -344,7 +525,7 @@ public class HashMap<K, V> {
      * 扩容前：某hash(key)=1000,n = 8,此时 (n-1) & hash = 0111 & 1000 = 0
      * 扩容后：                n = 16,此时(n-1) & hash = 1111 & 1000 = 1
      * 散列位置发生了变化，如果扩容后不重新散列，相同的hash(key)可能会散列到不同的索引上
-     *
+     * <p>
      * 如果cap由8扩容16，
      * 8-1= 00111
      * 16-1=01111
@@ -382,21 +563,33 @@ public class HashMap<K, V> {
                     oldTab[j] = null;   //gc
                     if (e.next == null) //当前桶上就一个节点
                         newTab[e.hash & (newCap - 1)] = e;
-                    else if (e instanceof TreeNode)
+                    else if (e instanceof TreeNode) //当前桶已经树化
                         ((TreeNode<K, V>) e).split(this, newTab, j, oldCap);
-                    else { // preserve order
+                    else { //当前桶还是链表
                         Node<K, V> loHead = null, loTail = null;
                         Node<K, V> hiHead = null, hiTail = null;
                         Node<K, V> next;
                         do {
                             next = e.next;
-                            if ((e.hash & oldCap) == 0) {
+                            //扩容前计算索引位置index = (n - 1) & hash，此时n = oldCap
+                            // int oldIndex = (oldCap - 1) & hash;
+                            //扩容后
+                            //int newIndex = (2 * oldCap - 1) & hash;
+                            //eg1：如果扩容前n = 4,扩容后就是n = 8
+                            // 0011 & hash      0111 & hash  扩容前后索引位置是否发生变化取决于hash的第低三位是否是0还是1
+                            //eg2：如果扩容前n = 8,扩容后就是n = 16
+                            // 0111 & hash     1111 & hash 取决于第低四位是否是0还是1
+                            //如果是0,0按位与任何数都是0，此时扩容后位置没有发生变化
+                            //如果是1,此时扩容后位置会发生变化：此时位置如何变化呢？
+                            //索引位置在高位多了一个1，就是增加了oldCap
+                            //oldCap可能是 0010,0100,1000,...
+                            if ((e.hash & oldCap) == 0) {   //该位置处扩容后位置不会变化
                                 if (loTail == null)
                                     loHead = e;
                                 else
                                     loTail.next = e;
                                 loTail = e;
-                            } else {
+                            } else {    //该位置处扩容后位置发生改变
                                 if (hiTail == null)
                                     hiHead = e;
                                 else
@@ -406,11 +599,11 @@ public class HashMap<K, V> {
                         } while ((e = next) != null);
                         if (loTail != null) {
                             loTail.next = null;
-                            newTab[j] = loHead;
+                            newTab[j] = loHead; //2倍扩容后索引位置不变
                         }
                         if (hiTail != null) {
                             hiTail.next = null;
-                            newTab[j + oldCap] = hiHead;
+                            newTab[j + oldCap] = hiHead;//2倍扩容后索引位置增加oldCap
                         }
                     }
                 }
@@ -437,6 +630,14 @@ public class HashMap<K, V> {
         n |= n >>> 8;
         n |= n >>> 16;
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+    }
+
+    Node<K, V> replacementNode(Node<K, V> p, Node<K, V> next) {
+        return new Node<>(p.hash, p.key, p.value, next);
+    }
+
+    Node<K, V> newNode(int hash, K key, V value, Node<K, V> next) {
+        return new Node<>(hash, key, value, next);
     }
 
 }
