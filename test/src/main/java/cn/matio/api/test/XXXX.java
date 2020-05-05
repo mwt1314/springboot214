@@ -10,6 +10,8 @@ import java.io.*;
 public class XXXX {
 
     public static void main(String[] args) throws IOException {
+        System.out.println(System.currentTimeMillis() / 1000);
+
         File file = new File("C:\\Users\\mawt\\Desktop\\im");
         ll(file);
     }
@@ -19,7 +21,8 @@ public class XXXX {
             File[] files = p.listFiles();
             for (File file : files) {
                 if (file.isFile()) {
-                    if (!file.getName().endsWith(".java")) continue;
+                //    if (file.getName().endsWith(".class")) continue;
+                //    if (file.getAbsolutePath().contains("mianshi-parent")) continue;
                     BufferedReader br = new BufferedReader(new FileReader(file));
                     String line;
                     int lineIndex = 0;
@@ -32,7 +35,7 @@ public class XXXX {
                         /*if (line != null && line.contains("shiku-tigase")) {
                             System.out.println(lineIndex + "" + file.getAbsolutePath());
                         }*/
-                        if (line != null && line.contains("shiku_msgs")) {
+                        if (line != null && line.contains("userStatusMessage")) {
                             System.out.println(lineIndex + "\t" + file.getAbsolutePath());
                             System.out.println(line + "\n");
                         }
