@@ -1,5 +1,18 @@
 3年工作经验总结
 
+Object类中的方法以及每个方法的作用
+
+String类：
+    hashCode()
+
+
+常用关键字
+    static
+    final
+    transient
+    volatile
+    synchronized
+
 1.集合
     list:
         ArrayList
@@ -8,10 +21,15 @@
         HashMap
         LinedHashMap
         TreeMap
-        ConcurrentHashMap
+        Hashtable
+        ConcurrentHashMap：
+            锁分段技术：
+            读是否要加锁：
+            迭代器是强一致性的迭代器还是弱一致性的迭代器
     set:
         HashSet
         TreeSet
+    CopyOnWrite系列
 2.数据结构
     队列：Queue
         先入先出FIFO
@@ -22,25 +40,32 @@
         创建方式：头插法、尾插法
     树：
         二叉树
-        平衡二叉树
+        二叉查找树
+        平衡二叉树AVL
         红黑树BRT
 3.多线程和线程同步
-    3.1创建线程的方式：
+    创建线程的方式：
         3.1.1Thread Runnable Callable
-    3.2线程状态
-    3.3CAS
-    3.4Unsafe类
-    3.5常用关键字和常用方法
+    线程状态
+    CAS
+    Unsafe类
+    常用关键字和常用方法
         volatile
         synchronized
-    3.6ThreadLocal类
-    3.7AQS
-    3.8Lock锁
+    ThreadLocal类
+    AQS
+    ReentrantLock
+    线程池的实现
 
 
-4.反射
 
-5.常用的设计模式：
+反射:
+    Class.forName和classloader的区别
+
+常用的设计模式：
+    (1) 你的项目中用到了哪些设计模式，如何使用。
+    (2) 知道常用设计模式的优缺点。
+    (3) 能画出常用设计模式的UML图。
     1.单例模式：
         饿汉式：典型的空间换时间，当类装载的时候就会创建类实例，不管你用不用，先创建出来，然后每次调用的时候，就不需要判断了，节省了运行时间
         懒汉式：
@@ -108,11 +133,27 @@
         其缺点是：可能产生大量具体命令类。因为计对每一个具体操作都需要设计一个具体命令类，这将增加系统的复杂性。
     11.责任链模式：
 
-6.数据流
+数据流
     序列化和反序列化
     字符流和字节流
 
-7.网络通信
+排序：
+
+
+Java虚拟机
+    (1) Java虚拟机的内存布局
+    (2) GC算法及几种垃圾收集器
+    (3) 类加载机制，也就是双亲委派模型
+    (4) Java内存模型
+    (5) happens-before规则
+    (6) volatile关键字使用规则
+    Java内存泄露的问题调查定位：jmap，jstack的使用等等
+
+网络通信
+    Socket
+    Http
+    WebService
+    阻塞IO、非阻塞IO、多路复用IO、异步IO这四种IO模型
 
 
 框架：
@@ -129,9 +170,15 @@
     关系型数据库sql：
         Oracle：
         Mysql：
-            索引：
+            索引：如何实现
             悲观锁和乐观锁：
             sql语句：
+                union
+                union all
+                left join
+                inner join
+                outer join
+
             存储过程：
             常用函数：
     非惯性数据库Nosql：
