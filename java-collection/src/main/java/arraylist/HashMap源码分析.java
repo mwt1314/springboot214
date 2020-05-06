@@ -198,12 +198,13 @@ public class HashMap源码分析<K, V> {
         }
 
         /**
+         *  红黑树自平衡核心方法
          *
-         * @param root
-         * @param x
-         * @param <K>
-         * @param <V>
-         * @return 根节点
+         * @param root  根节点
+         * @param x 当前节点
+         * @param <K>   key泛型
+         * @param <V>   value泛型
+         * @return 自平衡后的根节点
          */
         static <K, V> TreeNode<K, V> balanceInsertion(TreeNode<K, V> root, TreeNode<K, V> x) {
             x.red = true;   //插入结点是红色。理由：红色在父结点（如果存在）为黑色结点时，
@@ -401,6 +402,16 @@ public class HashMap源码分析<K, V> {
             return root;
         }
 
+        /**
+         *  找到key的位置更新或插入，还需要保证红黑树自平衡
+         *
+         * @param map   this
+         * @param tab   底层table数组
+         * @param h key的hash
+         * @param k key
+         * @param v value
+         * @return
+         */
         final TreeNode<K, V> putTreeVal(HashMap源码分析<K, V> map, Node<K, V>[] tab,
                                         int h, K k, V v) {
             Class<?> kc = null;
@@ -409,6 +420,7 @@ public class HashMap源码分析<K, V> {
             for (TreeNode<K, V> p = root; ; ) {
                 int dir, ph;
                 K pk;
+                //判断应该是左子树还是右子树
                 if ((ph = p.hash) > h)
                     dir = -1;
                 else if (ph < h)
@@ -431,7 +443,7 @@ public class HashMap源码分析<K, V> {
                 }
 
                 TreeNode<K, V> xp = p;
-                if ((p = (dir <= 0) ? p.left : p.right) == null) {
+                if ((p = (dir <= 0) ? p.left : p.right) == null) {  //找到叶子节点了，准备插入或更新
                     Node<K, V> xpn = xp.next;
                     TreeNode<K, V> x = map.newTreeNode(h, k, v, xpn);
                     if (dir <= 0)
@@ -445,6 +457,38 @@ public class HashMap源码分析<K, V> {
                     moveRootToFront(tab, balanceInsertion(root, x));
                     return null;
                 }
+            }
+        }
+
+        static int tieBreakOrder(Object a, Object b) {
+            int d;
+            if (a == null || b == null ||
+                    (d = a.getClass().getName().
+                            compareTo(b.getClass().getName())) == 0)
+                d = (System.identityHashCode(a) <= System.identityHashCode(b) ?
+                        -1 : 1);
+            return d;
+        }
+
+        static <K,V> void moveRootToFront(Node<K,V>[] tab, TreeNode<K,V> root) {
+            int n;
+            if (root != null && tab != null && (n = tab.length) > 0) {
+                int index = (n - 1) & root.hash;
+                TreeNode<K,V> first = (TreeNode<K,V>)tab[index];
+                if (root != first) {
+                    Node<K,V> rn;
+                    tab[index] = root;
+                    TreeNode<K,V> rp = root.prev;
+                    if ((rn = root.next) != null)
+                        ((TreeNode<K,V>)rn).prev = rp;
+                    if (rp != null)
+                        rp.next = rn;
+                    if (first != null)
+                        first.prev = root;
+                    root.next = first;
+                    root.prev = null;
+                }
+                assert checkInvariants(root);
             }
         }
 
