@@ -6,11 +6,30 @@ import java.util.Set;
 
 /**
  * 一般将数组中的每一个元素称作桶（segment），桶中连的链表或者红黑树中的每一个元素成为bin
+ * <p>
+ * 底层实现：数组 + 单向链表 + 红黑树
+ * <p>
+ * 红黑树定义和性质
+ * 红黑树是一种含有红黑结点并能自平衡的二叉查找树。它必须满足下面性质：
+ * <p>
+ * 性质1：每个节点要么是黑色，要么是红色。
+ * 性质2：根节点是黑色。
+ * 性质3：每个叶子节点（NIL）是黑色。
+ * 性质4：每个红色结点的两个子结点一定都是黑色。
+ * 性质5：任意一结点到每个叶子结点的路径都包含数量相同的黑结点。
+ * <p>
+ * 从性质5又可以推出：
+ * 性质5.1：如果一个结点A存在黑子结点，那么该结点A肯定有两个子结点
+ * <p>
+ * 红黑树自平衡的三种操作：左旋、右旋和变色
+ * 左旋：以某个结点作为支点(旋转结点)，其右子结点变为旋转结点的父结点，右子结点的左子结点变为旋转结点的右子结点，左子结点保持不变。
+ * 右旋：以某个结点作为支点(旋转结点)，其左子结点变为旋转结点的父结点，左子结点的右子结点变为旋转结点的左子结点，右子结点保持不变。
+ * 变色：结点的颜色由红变黑或由黑变红1。
  *
  * @param <K>
  * @param <V>
  */
-public class HashMap<K, V> {
+public class HashMap源码分析<K, V> {
 
     //默认初始化容量 16。容量必须为2的次方。默认的hashmap大小为16
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4;
@@ -46,15 +65,15 @@ public class HashMap<K, V> {
     //扩容阈值：当HashMap的size值大于threshold时会执行resize操作
     int threshold;
 
-    public HashMap() {
+    public HashMap源码分析() {
         this.loadFactor = DEFAULT_LOAD_FACTOR;
     }
 
-    public HashMap(int initialCapacity) {
+    public HashMap源码分析(int initialCapacity) {
         this(initialCapacity, DEFAULT_LOAD_FACTOR);
     }
 
-    public HashMap(int initialCapacity, float loadFactor) {
+    public HashMap源码分析(int initialCapacity, float loadFactor) {
         this.loadFactor = loadFactor;
         this.threshold = tableSizeFor(initialCapacity);
     }
@@ -108,7 +127,7 @@ public class HashMap<K, V> {
         }
     }
 
-    static class Entry<K, V> extends HashMap.Node<K, V> {
+    static class Entry<K, V> extends HashMap源码分析.Node<K, V> {
         Entry<K, V> before, after;
 
         Entry(int hash, K key, V value, Node<K, V> next) {
@@ -179,12 +198,81 @@ public class HashMap<K, V> {
         }
 
         /**
+         *  红黑树自平衡核心方法
+         *
+         * @param root  根节点
+         * @param x 当前节点
+         * @param <K>   key泛型
+         * @param <V>   value泛型
+         * @return 自平衡后的根节点
+         */
+        static <K, V> TreeNode<K, V> balanceInsertion(TreeNode<K, V> root, TreeNode<K, V> x) {
+            x.red = true;   //插入结点是红色。理由：红色在父结点（如果存在）为黑色结点时，
+            //红黑树的黑色平衡没被破坏，不需要做自平衡操作。但如果插入结点是黑色，
+            //那么插入位置所在的子树黑色结点总是多1，必须做自平衡。(所有插入操作都是在叶子结点进行的，叶子节点一定是黑色)
+            //xp：当前节点x的父节点
+            //xpp：当前节点x的爷爷节点
+            //xppl：当前节点x的爷爷节点的左子节点
+            //xppr：当前节点x的爷爷节点的右子节点
+            for (TreeNode<K, V> xp, xpp, xppl, xppr; ; ) {
+                if ((xp = x.parent) == null) {  //如果当前节点没有父节点，代表x就是根节点，根节点为黑色
+                    x.red = false;
+                    return x;
+                } else if (!xp.red || (xpp = xp.parent) == null)
+                    //情况1：父节点xp为黑色，当前节点x为红色。因此红黑树已经自平衡，直接返回就可以了
+                    //情况2：父节点xp为红色，根节点xp为黑色，当前节点x为红色，已经自平衡了（满足5大特性）
+                    return root;
+
+                //此时当前节点x为红色，父节点xp为红色，祖父节点xpp一定是黑色
+                if (xp == (xppl = xpp.left)) {//如果父节点是祖父节点的左子节点xppl
+                    if ((xppr = xpp.right) != null && xppr.red) {   //如果存在叔叔节点（右），并且还是红色
+                        xppr.red = false;
+                        xp.red = false;
+                        xpp.red = true;
+                        x = xpp;
+                    } else {    //如果不存在叔叔节点  或者叔叔节点还是黑色
+                        if (x == xp.right) {
+                            root = rotateLeft(root, x = xp);    //左旋父节点xp，
+                            xpp = (xp = x.parent) == null ? null : xp.parent;
+                        }
+                        if (xp != null) {
+                            xp.red = false;
+                            if (xpp != null) {
+                                xpp.red = true;
+                                root = rotateRight(root, xpp);
+                            }
+                        }
+                    }
+                } else { //如果xp是xpp的右子节点
+                    if (xppl != null && xppl.red) {
+                        xppl.red = false;
+                        xp.red = false;
+                        xpp.red = true;
+                        x = xpp;
+                    } else {
+                        if (x == xp.left) {
+                            root = rotateRight(root, x = xp);
+                            xpp = (xp = x.parent) == null ? null : xp.parent;
+                        }
+                        if (xp != null) {
+                            xp.red = false;
+                            if (xpp != null) {
+                                xpp.red = true;
+                                root = rotateLeft(root, xpp);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
          * @param map   当前hashmap对象
          * @param tab   底层table
          * @param index 当前红黑树在table中的索引
          * @param bit   当前table的length
          */
-        final void split(HashMap<K, V> map, Node<K, V>[] tab, int index, int bit) {
+        final void split(HashMap源码分析<K, V> map, Node<K, V>[] tab, int index, int bit) {
             TreeNode<K, V> b = this;    //当前table中某位置处的红黑树
             // Relink into lo and hi lists, preserving order
             TreeNode<K, V> loHead = null, loTail = null;
@@ -230,7 +318,7 @@ public class HashMap<K, V> {
             }
         }
 
-        final Node<K, V> untreeify(HashMap<K, V> map) {   //红黑树转回单向链表
+        final Node<K, V> untreeify(HashMap源码分析<K, V> map) {   //红黑树转回单向链表
             Node<K, V> hd = null, tl = null;
             for (Node<K, V> q = this; q != null; q = q.next) {
                 Node<K, V> p = map.replacementNode(q, null);
@@ -280,13 +368,59 @@ public class HashMap<K, V> {
             return null;
         }
 
-        final TreeNode<K,V> putTreeVal(HashMap<K,V> map, Node<K,V>[] tab,
-                                       int h, K k, V v) {
+        static <K,V> TreeNode<K,V> rotateLeft(TreeNode<K,V> root, TreeNode<K,V> p) {
+            TreeNode<K,V> r, pp, rl;
+            if (p != null && (r = p.right) != null) {
+                if ((rl = p.right = r.left) != null)
+                    rl.parent = p;
+                if ((pp = r.parent = p.parent) == null)
+                    (root = r).red = false;
+                else if (pp.left == p)
+                    pp.left = r;
+                else
+                    pp.right = r;
+                r.left = p;
+                p.parent = r;
+            }
+            return root;
+        }
+
+        static <K,V> TreeNode<K,V> rotateRight(TreeNode<K,V> root, TreeNode<K,V> p) {
+            TreeNode<K,V> l, pp, lr;
+            if (p != null && (l = p.left) != null) {
+                if ((lr = p.left = l.right) != null)
+                    lr.parent = p;
+                if ((pp = l.parent = p.parent) == null)
+                    (root = l).red = false;
+                else if (pp.right == p)
+                    pp.right = l;
+                else
+                    pp.left = l;
+                l.right = p;
+                p.parent = l;
+            }
+            return root;
+        }
+
+        /**
+         *  找到key的位置更新或插入，还需要保证红黑树自平衡
+         *
+         * @param map   this
+         * @param tab   底层table数组
+         * @param h key的hash
+         * @param k key
+         * @param v value
+         * @return
+         */
+        final TreeNode<K, V> putTreeVal(HashMap源码分析<K, V> map, Node<K, V>[] tab,
+                                        int h, K k, V v) {
             Class<?> kc = null;
             boolean searched = false;
-            TreeNode<K,V> root = (parent != null) ? root() : this;
-            for (TreeNode<K,V> p = root;;) {
-                int dir, ph; K pk;
+            TreeNode<K, V> root = (parent != null) ? root() : this;
+            for (TreeNode<K, V> p = root; ; ) {
+                int dir, ph;
+                K pk;
+                //判断应该是左子树还是右子树
                 if ((ph = p.hash) > h)
                     dir = -1;
                 else if (ph < h)
@@ -297,7 +431,7 @@ public class HashMap<K, V> {
                         (kc = comparableClassFor(k)) == null) ||
                         (dir = compareComparables(kc, k, pk)) == 0) {
                     if (!searched) {
-                        TreeNode<K,V> q, ch;
+                        TreeNode<K, V> q, ch;
                         searched = true;
                         if (((ch = p.left) != null &&
                                 (q = ch.find(h, k, kc)) != null) ||
@@ -308,10 +442,10 @@ public class HashMap<K, V> {
                     dir = tieBreakOrder(k, pk);
                 }
 
-                TreeNode<K,V> xp = p;
-                if ((p = (dir <= 0) ? p.left : p.right) == null) {
-                    Node<K,V> xpn = xp.next;
-                    TreeNode<K,V> x = map.newTreeNode(h, k, v, xpn);
+                TreeNode<K, V> xp = p;
+                if ((p = (dir <= 0) ? p.left : p.right) == null) {  //找到叶子节点了，准备插入或更新
+                    Node<K, V> xpn = xp.next;
+                    TreeNode<K, V> x = map.newTreeNode(h, k, v, xpn);
                     if (dir <= 0)
                         xp.left = x;
                     else
@@ -319,10 +453,42 @@ public class HashMap<K, V> {
                     xp.next = x;
                     x.parent = x.prev = xp;
                     if (xpn != null)
-                        ((TreeNode<K,V>)xpn).prev = x;
+                        ((TreeNode<K, V>) xpn).prev = x;
                     moveRootToFront(tab, balanceInsertion(root, x));
                     return null;
                 }
+            }
+        }
+
+        static int tieBreakOrder(Object a, Object b) {
+            int d;
+            if (a == null || b == null ||
+                    (d = a.getClass().getName().
+                            compareTo(b.getClass().getName())) == 0)
+                d = (System.identityHashCode(a) <= System.identityHashCode(b) ?
+                        -1 : 1);
+            return d;
+        }
+
+        static <K,V> void moveRootToFront(Node<K,V>[] tab, TreeNode<K,V> root) {
+            int n;
+            if (root != null && tab != null && (n = tab.length) > 0) {
+                int index = (n - 1) & root.hash;
+                TreeNode<K,V> first = (TreeNode<K,V>)tab[index];
+                if (root != first) {
+                    Node<K,V> rn;
+                    tab[index] = root;
+                    TreeNode<K,V> rp = root.prev;
+                    if ((rn = root.next) != null)
+                        ((TreeNode<K,V>)rn).prev = rp;
+                    if (rp != null)
+                        rp.next = rn;
+                    if (first != null)
+                        first.prev = root;
+                    root.next = first;
+                    root.prev = null;
+                }
+                assert checkInvariants(root);
             }
         }
 
@@ -454,64 +620,6 @@ public class HashMap<K, V> {
             } while ((e = e.next) != null);
             if ((tab[index] = hd) != null)  //将双向链表头结点地址存入该hash值对应的下标处
                 hd.treeify(tab);    //着手开始将这一个双向链表转成红黑树了
-        }
-    }
-
-    static <K, V> TreeNode<K, V> balanceInsertion(TreeNode<K, V> root, TreeNode<K, V> x) {
-        x.red = true;   //插入结点是红色。理由：红色在父结点（如果存在）为黑色结点时，
-        //红黑树的黑色平衡没被破坏，不需要做自平衡操作。但如果插入结点是黑色，
-        //那么插入位置所在的子树黑色结点总是多1，必须做自平衡。(所有插入操作都是在叶子结点进行的，叶子节点一定是黑色)
-        //xp：当前节点x的父节点
-        //xpp：当前节点x的爷爷节点
-        //xppl：当前节点x的爷爷节点的左子节点
-        //xppr：当前节点x的爷爷节点的右子节点
-        for (TreeNode<K, V> xp, xpp, xppl, xppr; ; ) {
-            if ((xp = x.parent) == null) {  //如果当前节点没有父节点，代表x就是根节点，根节点为黑色
-                x.red = false;
-                return x;
-            } else if (!xp.red || (xpp = xp.parent) == null)
-                //情况1：父节点xp为黑色，当前节点x为红色，
-                //情况2：父节点xp为红色，根节点xp为黑色，当前节点x为红色，已经自平衡了（满足5大特性）
-                return root;
-            if (xp == (xppl = xpp.left)) {//如果xp是xpp的左子节点
-                if ((xppr = xpp.right) != null && xppr.red) {   //如果xppr为红色
-                    xppr.red = false;
-                    xp.red = false;
-                    xpp.red = true;
-                    x = xpp;
-                } else {
-                    if (x == xp.right) {
-                        root = rotateLeft(root, x = xp);
-                        xpp = (xp = x.parent) == null ? null : xp.parent;
-                    }
-                    if (xp != null) {
-                        xp.red = false;
-                        if (xpp != null) {
-                            xpp.red = true;
-                            root = rotateRight(root, xpp);
-                        }
-                    }
-                }
-            } else { //如果xp是xpp的右子节点
-                if (xppl != null && xppl.red) {
-                    xppl.red = false;
-                    xp.red = false;
-                    xpp.red = true;
-                    x = xpp;
-                } else {
-                    if (x == xp.left) {
-                        root = rotateRight(root, x = xp);
-                        xpp = (xp = x.parent) == null ? null : xp.parent;
-                    }
-                    if (xp != null) {
-                        xp.red = false;
-                        if (xpp != null) {
-                            xpp.red = true;
-                            root = rotateLeft(root, xpp);
-                        }
-                    }
-                }
-            }
         }
     }
 
