@@ -1,0 +1,17 @@
+1.集合
+    list:
+        ArrayList
+        LinkedList
+    map:
+        HashMap
+        LinedHashMap
+        TreeMap
+        Hashtable
+        ConcurrentHashMap：
+            锁分段技术：
+            读是否要加锁：
+            迭代器是强一致性的迭代器还是弱一致性的迭代器
+    set:
+        HashSet
+        TreeSet
+    CopyOnWrite系列

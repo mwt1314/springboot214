@@ -1,66 +1,7 @@
 3年工作经验总结
 
-Object类中的方法以及每个方法的作用
-
-String类：
-    hashCode()
 
 
-常用关键字
-    static
-    final
-    transient
-    volatile
-    synchronized
-
-1.集合
-    list:
-        ArrayList
-        LinkedList
-    map:
-        HashMap
-        LinedHashMap
-        TreeMap
-        Hashtable
-        ConcurrentHashMap：
-            锁分段技术：
-            读是否要加锁：
-            迭代器是强一致性的迭代器还是弱一致性的迭代器
-    set:
-        HashSet
-        TreeSet
-    CopyOnWrite系列
-2.数据结构
-    队列：Queue
-        先入先出FIFO
-    栈：Stack
-        先入后出FILO
-    链表：
-        分类：单向链表、双向链表
-        创建方式：头插法、尾插法
-    树：
-        二叉树
-        二叉查找树
-        平衡二叉树AVL
-        红黑树BRT
-3.多线程和线程同步
-    创建线程的方式：
-        3.1.1Thread Runnable Callable
-    线程状态
-    CAS
-    Unsafe类
-    常用关键字和常用方法
-        volatile
-        synchronized
-    ThreadLocal类
-    AQS
-    ReentrantLock
-    线程池的实现
-
-
-
-反射:
-    Class.forName和classloader的区别
 
 常用的设计模式：
     (1) 你的项目中用到了哪些设计模式，如何使用。
@@ -133,10 +74,6 @@ String类：
         其缺点是：可能产生大量具体命令类。因为计对每一个具体操作都需要设计一个具体命令类，这将增加系统的复杂性。
     11.责任链模式：
 
-数据流
-    序列化和反序列化
-    字符流和字节流
-
 排序：
 
 
@@ -178,22 +115,17 @@ Java虚拟机
                 left join
                 inner join
                 outer join
-
             存储过程：
             常用函数：
     非惯性数据库Nosql：
         Redis：
         Mongodb：
+        HBase：
 
 大数据框架
     Hadoop：
     Spark：
     Storm：
-
-消息队列MQ：
-    RocketMQ
-    Kafka
-    RabbitMQ
 
 搜索引擎
     Solr:
@@ -208,3 +140,18 @@ Linux常用命令
 
 
 算法：
+
+
+中间件：在大型网站中，帮助各子模块间实现互相访问，消息共享或统一访问等功能的软件产品
+    远程服务框架中间件：主要解决各子模块之间互相访问的问题。 如分布式服务框架Dubbo，RPC框架等
+    消息队列中间件：主要解决各子模之间消息共享的问题。是一种EDA架构（event driven architecture）：通过在低耦合的模块之间传输事件消息来完成模块之间的合作。大型网站中，消息队列采用发布/订阅模式。消息发布者发布消息到消息队列，消息消费者只要对该类消息感兴趣，就可以订阅该消息，对其他的业务没有任何的影响。
+    数据访问中间件：用于简化应用层对数据层的访问
+    Dubbo
+    Kafka
+    Zookeeper
+    RocketMQ
+    RabbitMQ
+
+
+分布式理论：CAP、BASE、2PC、3PC、TCC
+
