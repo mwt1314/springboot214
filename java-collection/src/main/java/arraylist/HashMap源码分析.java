@@ -607,6 +607,11 @@ public class HashMap源码分析<K, V> {
     }
 
     //hashmap的核心方法：移除键值对
+    /**
+     * 从HashMap中删除掉指定key对应的键值对，并返回被删除的键值对的值
+     * 如果返回空，说明key可能不存在，也可能key对应的值就是null
+     * 如果想确定到底key是否存在可以使用containsKey方法
+     */
     public V remove(Object key) {
         Node<K,V> e;
         return (e = removeNode(hash(key), key, null, false, true)) == null ?
@@ -684,10 +689,10 @@ public class HashMap源码分析<K, V> {
                                boolean matchValue, boolean movable) {
         Node<K,V>[] tab; Node<K,V> p; int n, index;
         if ((tab = table) != null && (n = tab.length) > 0 &&
-                (p = tab[index = (n - 1) & hash]) != null) {
+                (p = tab[index = (n - 1) & hash]) != null) {// 节点数组在hash位置处的节点不为空,若为空则直接返回null(不存在可删除元素)
             Node<K,V> node = null, e; K k; V v;
             if (p.hash == hash &&
-                    ((k = p.key) == key || (key != null && key.equals(k))))
+                    ((k = p.key) == key || (key != null && key.equals(k))))// 头结点即为需要删除的节点
                 node = p;
             else if ((e = p.next) != null) {
                 if (p instanceof TreeNode)  //红黑树
@@ -698,7 +703,7 @@ public class HashMap源码分析<K, V> {
                         if (e.hash == hash &&
                                 ((k = e.key) == key ||
                                         (key != null && key.equals(k)))) {
-                            node = e;
+                            node = e;// 节点e就是需要移除的节点,结束循环
                             break;
                         }
                         p = e;
@@ -706,14 +711,14 @@ public class HashMap源码分析<K, V> {
                 }
             }
             if (node != null && (!matchValue || (v = node.value) == value ||
-                    (value != null && value.equals(v)))) {
+                    (value != null && value.equals(v)))) {// 存在需要移除的节点且值匹配删除为false或者不为false且值匹配
                 if (node instanceof TreeNode)
                     //移除红黑树上节点时也要自平衡
                     ((TreeNode<K,V>)node).removeTreeNode(this, tab, movable);
                 else if (node == p)
-                    tab[index] = node.next;
+                    tab[index] = node.next;//移除链表头节点
                 else
-                    p.next = node.next;
+                    p.next = node.next; //移除链表中间节点
                 ++modCount;
                 --size;
                 afterNodeRemoval(node);

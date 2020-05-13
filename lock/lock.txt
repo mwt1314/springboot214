@@ -49,65 +49,7 @@ public void testCAS(){
 乐观锁最主要的实现方式是CAS算法：Compare And Swap:旧值 期望值 新值（当旧值等于期望值时，替换新值）
 步骤1：某时刻a获取内存中的新值
 步骤2：下一时刻b获取内存中的新值，如果a时刻的值和b时刻的值相等，那么认为没有被修改，直接替换，否则重复步骤2
-CAS源码：
-public class AtomicInteger {
-    private static final Unsafe unsafe = Unsafe.getUnsafe();
 
-    //指类中相应字段在该类的偏移量
-    //在这里具体即是指value这个字段在AtomicInteger类的内存中相对于该类首地址的偏移量
-    private static final long valueOffset;
-
-    //求出value这个字段的偏移量
-    static {
-        try {
-            valueOffset = unsafe.objectFieldOffset(AtomicInteger.class.getDeclaredField("value"));
-        } catch (Exception ex) { throw new Error(ex); }
-    }
-
-    //volatile保证在多线程中value的值时可见的，任何一个线程修改了value的值，都会被立即回写到主内存中
-    //保证了可见性，有序性（防止指令重排），不保证原子性
-    private volatile int value;
-
-    public final int getAndIncrement() {
-        return unsafe.getAndAddInt(this, valueOffset, 1);
-    }
-
-    public final boolean compareAndSet(int expect, int update) {
-        return unsafe.compareAndSwapInt(this, valueOffset, expect, update);
-    }
-
-    public final void set(int newValue) {
-        value = newValue;
-    }
-
-    //通过该方法对共享变量值的改变，不一定能被其他线程立即看到。也就是说以普通变量的操作方式来写变量。即无法保证value的可见性
-    public final void lazySet(int newValue) {
-        unsafe.putOrderedInt(this, valueOffset, newValue);
-    }
-
-}
-
-public final class Unsafe {
-
-    public final int getAndAddInt(Object obj, long valueOffset, int increment) {
-        int oldValue;
-        do {
-            oldValue = this.getIntVolatile(obj, valueOffset);
-        } while(!this.compareAndSwapInt(obj, valueOffset, oldValue, oldValue + increment));
-        return oldValue;
-    }
-
-    /**
-     * this: 需要修改的对象
-     * valueOffset：内存中相对于该类首地址的偏移量
-     * expect：期望值
-     * update：新值
-     */
-    public final native boolean compareAndSwapInt(Object obj, long valueOffset, int expect, int update);
-
-    public native int getIntVolatile(Object obj, long valueOffset);
-
-}
 
 代码举例：
     //共享变量
@@ -121,15 +63,6 @@ public final class Unsafe {
         System.out.println(ai.get());
     }
 
-CAS问题：
-1.ABA问题：因为CAS需要在操作值的时候检查下值有没有发生变化，如果没有发生变化则更新，但是如果一个值原来是A，变成了B，又变成了A，
-          那么使用CAS进行检查时会发现它的值没有发生变化，但是实际上却变化了。ABA问题的解决思路就是使用版本号。
-          在变量前面追加上版本号，每次变量更新的时候把版本号加一，那么A-B-A 就会变成1A-2B-3A
-2.循环时间开销大：自旋CAS如果长时间不成功，会给CPU带来非常大的执行开销（时刻a的内存值和时刻b的内存值比较，如果相等则更新，否则一直循环）
-3.只能保证一个共享变量的原子操作：
-解决方案：
-AtomicMarkableReference<V>  维护了boolean变量表示引用变量是否被更改过
-AtomicStampedReference<V>  维护了int类型的变量表示版本号
 
 JDK1.6对synchronized关键字做了很多优化，包括自旋锁、适应性自旋锁、锁消除、锁粗化、偏向锁、轻量级锁等技术来减少锁操作的开销
 
