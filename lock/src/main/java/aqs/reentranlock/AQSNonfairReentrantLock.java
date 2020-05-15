@@ -162,6 +162,11 @@ public class AQSNonfairReentrantLock extends AQSAbstractOwnableSynchronizer {
      * @param node 当前线程的包装节点，waitStatus初始化默认值为0
      * @param arg  固定值1
      * @return
+     *
+     * acquireQueued()用于队列中的线程自旋地以独占且不可中断的方式获取同步状态（acquire），直到拿到锁之后再返回。
+     * 该方法的实现分成两部分：如果当前节点已经成为头结点，尝试获取锁（tryAcquire）成功，然后返回；
+     * 否则检查当前节点是否应该被park，然后将该线程park并且检查当前线程是否被可以被中断。
+     *
      */
     final boolean acquireQueued(final Node node, int arg) { //该方法会被多线程访问
         //遵循FIFO的规则：从head开始依次获取锁
@@ -170,7 +175,7 @@ public class AQSNonfairReentrantLock extends AQSAbstractOwnableSynchronizer {
         //如果不是，设置当前节点的waitStatus=-1，标识当前节点需要被前驱节点唤醒
         boolean failed = true;  //获取锁标识
         try {
-            boolean interrupted = false;
+            boolean interrupted = false;//标记等待过程中是否被中断过
             for (; ; ) {    //自旋
                 final Node p = node.predecessor();  //当前节点的前驱节点
                 if (p == head //如果当前节点的前驱节点是head
@@ -268,6 +273,8 @@ public class AQSNonfairReentrantLock extends AQSAbstractOwnableSynchronizer {
 
     //只有当该节点的前驱结点的状态为SIGNAL时，才可以对该结点所封装的线程进行park操作。否则，将不能进行park操作
     // 进行park操作并且返回该线程是否被中断
+    //该方法让线程去休息，真正进入等待状态。park()会让当前线程进入waiting状态。
+    // 在此状态下，有两种途径可以唤醒该线程：1）被unpark()；2）被interrupt()。需要注意的是，Thread.interrupted()会清除当前线程的中断标记位
     private final boolean parkAndCheckInterrupt() {
         LockSupport.park(this);   // 在许可可用之前禁用当前线程，并且设置了blocker
         return Thread.interrupted();    // 当前线程是否已中断，并清除中断标记位
@@ -278,7 +285,7 @@ public class AQSNonfairReentrantLock extends AQSAbstractOwnableSynchronizer {
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         int ws = pred.waitStatus;   //获取前驱节点的状态
         if (ws == Node.SIGNAL) {    //如果前驱节点的状态为signal=-1
-            //如果前驱节点的状态为-1，说明当前节点需要被其前驱节点唤醒，此时要阻塞当期节点，所以返回true
+            //如果前驱节点的状态为-1，说明当前节点需要被其前驱节点唤醒，此时要阻塞当前节点，所以返回true
             //如果前驱节点状态为SIGNAL状态，在释放锁时会唤醒后继节点（也就是当前线程），所以现在可以阻塞自己等待唤醒
             return true;
         }

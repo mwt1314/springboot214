@@ -428,6 +428,112 @@ public class HashMap源码分析<K, V> {
                 moveRootToFront(tab, r);
         }
 
+        //红黑树的删除自平衡
+
+        /**
+         * this删除节点
+         *
+         * @param root 根节点
+         * @param x 替换节点
+         * @param <K>
+         * @param <V>
+         * @return
+         */
+        static <K,V> TreeNode<K,V> balanceDeletion(TreeNode<K,V> root, TreeNode<K,V> x) {
+            for (TreeNode<K,V> xp, xpl, xpr;;) {
+                //xp：x的父节点
+                //xpl：x的父节点的左子节点
+                //xmr：x的父节点的右子节点
+                if (x == null || x == root)
+                    return root;
+                else if ((xp = x.parent) == null) { //x是根节点
+                    x.red = false;
+                    return x;
+                }
+                else if (x.red) {//节点为红色，被删除后不会影响红黑树的自平衡
+                    x.red = false;
+                    return root;
+                }
+                //此时：x为黑色
+                else if ((xpl = xp.left) == x) { //x是父节点的左子节点
+                    if ((xpr = xp.right) != null && xpr.red) {
+                        xpr.red = false;
+                        xp.red = true;
+                        root = rotateLeft(root, xp);
+                        xpr = (xp = x.parent) == null ? null : xp.right;
+                    }
+                    if (xpr == null)
+                        x = xp;
+                    else {
+                        TreeNode<K,V> sl = xpr.left, sr = xpr.right;
+                        if ((sr == null || !sr.red) &&
+                                (sl == null || !sl.red)) {
+                            xpr.red = true;
+                            x = xp;
+                        }
+                        else {
+                            if (sr == null || !sr.red) {
+                                if (sl != null)
+                                    sl.red = false;
+                                xpr.red = true;
+                                root = rotateRight(root, xpr);
+                                xpr = (xp = x.parent) == null ?
+                                        null : xp.right;
+                            }
+                            if (xpr != null) {
+                                xpr.red = (xp == null) ? false : xp.red;
+                                if ((sr = xpr.right) != null)
+                                    sr.red = false;
+                            }
+                            if (xp != null) {
+                                xp.red = false;
+                                root = rotateLeft(root, xp);
+                            }
+                            x = root;
+                        }
+                    }
+                }
+                else { // symmetric
+                    if (xpl != null && xpl.red) {
+                        xpl.red = false;
+                        xp.red = true;
+                        root = rotateRight(root, xp);
+                        xpl = (xp = x.parent) == null ? null : xp.left;
+                    }
+                    if (xpl == null)
+                        x = xp;
+                    else {
+                        TreeNode<K,V> sl = xpl.left, sr = xpl.right;
+                        if ((sl == null || !sl.red) &&
+                                (sr == null || !sr.red)) {
+                            xpl.red = true;
+                            x = xp;
+                        }
+                        else {
+                            if (sl == null || !sl.red) {
+                                if (sr != null)
+                                    sr.red = false;
+                                xpl.red = true;
+                                root = rotateLeft(root, xpl);
+                                xpl = (xp = x.parent) == null ?
+                                        null : xp.left;
+                            }
+                            if (xpl != null) {
+                                xpl.red = (xp == null) ? false : xp.red;
+                                if ((sl = xpl.left) != null)
+                                    sl.red = false;
+                            }
+                            if (xp != null) {
+                                xp.red = false;
+                                root = rotateRight(root, xp);
+                            }
+                            x = root;
+                        }
+                    }
+                }
+            }
+        }
+
         /**
          * @param h hash(key)
          * @param k key
@@ -681,6 +787,7 @@ public class HashMap源码分析<K, V> {
         ++modCount;
         if (++size > threshold)  //检查是否应该扩容
             resize();
+        //这是一个空实现的函数，用作LinkedHashMap重写使用
         afterNodeInsertion(evict);
         return null;
     }
