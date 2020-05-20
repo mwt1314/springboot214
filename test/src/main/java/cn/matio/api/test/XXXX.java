@@ -12,7 +12,7 @@ public class XXXX {
     public static void main(String[] args) throws IOException {
         System.out.println(System.currentTimeMillis() / 1000);
 
-        File file = new File("C:\\Users\\mawt\\Desktop\\im");
+        File file = new File("E:\\im-tigase-server");
         ll(file);
     }
 
@@ -35,7 +35,7 @@ public class XXXX {
                         /*if (line != null && line.contains("shiku-tigase")) {
                             System.out.println(lineIndex + "" + file.getAbsolutePath());
                         }*/
-                        if (line != null && line.contains("userStatusMessage")) {
+                        if (line != null && line.contains("shiku_room_member")) {
                             System.out.println(lineIndex + "\t" + file.getAbsolutePath());
                             System.out.println(line + "\n");
                         }
