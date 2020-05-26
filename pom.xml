@@ -16,16 +16,13 @@
         <module>swagger2</module>
         <module>test</module>
         <module>rabbitmq</module>
-        <module>mongodb</module>
         <module>import</module>
         <module>redis</module>
         <module>thread</module>
         <module>solr</module>
         <module>elasticsearch</module>
         <module>interview_internal_reference</module>
-        <module>linux</module>
         <module>javanio</module>
-        <module>java-sort</module>
         <module>lock</module>
         <module>design-pattern</module>
         <module>thread</module>

@@ -1,2 +1,0 @@
-mongo.uri=mongodb://microschool:microschool@192.168.0.133:27017/micro-school?authSource=micro-school
-mongo.dbName=micro-school

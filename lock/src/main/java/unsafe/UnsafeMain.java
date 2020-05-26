@@ -19,7 +19,7 @@ public class UnsafeMain {
         assert unsafe != null;
         int intScale = unsafe.arrayIndexScale(int[].class);
 
-        //返回指定类型数组的第一个元素地址相对于数组起始地址的偏移值
+        //返回指定类型数组的第一个元素相对于数组起始地址的偏移值
         int base = unsafe.arrayBaseOffset(int[].class);
 
         //公式：索引i的元素在数组中的内存起始地址
