@@ -1,5 +1,6 @@
 package aqs.reentranlock;
 
+import lombok.SneakyThrows;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -101,20 +102,40 @@ public class AQSNonfairReentrantLock extends AQSAbstractOwnableSynchronizer {
         release(1);
     }
 
+    //非公平锁
+    static AQSNonfairReentrantLock aqsNonfairReentrantLock = new AQSNonfairReentrantLock();
+
     public static void main(String[] args) {
-        //非公平锁
-        AQSNonfairReentrantLock aqsNonfairReentrantLock = new AQSNonfairReentrantLock();
-        for (int i = 0; i < 10; i++) {
-            Thread thread = new Thread(() -> {
+        int tickets = 100;  //总共100张票
+        SaleTicket ticket = new SaleTicket(tickets);
+        for (int i = 0; i < 20; i++) {   //模拟5个售票窗口
+            Thread thread = new Thread(ticket, "窗口" + i);
+            thread.start();
+        }
+    }
+
+    private static class SaleTicket implements Runnable {
+        private int tickets;
+
+        public SaleTicket(int tickets) {
+            this.tickets = tickets;
+        }
+
+        @SneakyThrows
+        @Override
+        public void run() {
+            while (tickets > 0) {
                 try {
                     aqsNonfairReentrantLock.lock();
-
+                    if (tickets < 1)  break;
+                    tickets--;
+                    System.out.println(Thread.currentThread().getName() + "\t卖出一张,剩余票数:" + tickets + "张");
                 } finally {
                     aqsNonfairReentrantLock.unlock();
                 }
-
-            });
-            thread.start();
+            //    Thread.sleep(1);
+            }
+            System.out.println(Thread.currentThread().getName() + "\t余票不足,停止售票!");
         }
     }
 
@@ -172,7 +193,7 @@ public class AQSNonfairReentrantLock extends AQSAbstractOwnableSynchronizer {
         //遵循FIFO的规则：从head开始依次获取锁
         //当期节点被加入到等待队列中后，
         //判断当期节点的前驱节点是不是head，如果是，说明处于等待队列中的第一位，需要被处理了
-        //如果不是，设置当前节点的waitStatus=-1，标识当前节点需要被前驱节点唤醒
+        //如果不是，设置当前节点的waitStatus=-1SIGNAL，标识当前节点需要被前驱节点唤醒
         boolean failed = true;  //获取锁标识
         try {
             boolean interrupted = false;//标记等待过程中是否被中断过
@@ -195,6 +216,7 @@ public class AQSNonfairReentrantLock extends AQSAbstractOwnableSynchronizer {
         } finally {
             if (failed) {
                 //取消获取锁
+                System.out.println("xxxxxxxxxxxxxxxxxxxxxx");
                 cancelAcquire(node);
             }
         }
