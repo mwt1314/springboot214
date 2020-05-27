@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 public class 排序算法 {
 
-    private int[] arr = {2, 1, 3, 8, 1, 7, 0, 3, 5, 9};
+    private int[] arr = {9, 2, 1, 3, 8, 1, 7, 0, 3, 5, 9};
 
     @Before
     public void printBefore() {
@@ -19,16 +19,19 @@ public class 排序算法 {
     @Test
     public void bubbleSort() {
         System.out.println("冒泡排序，两两比较，把最大的依次放在最后，时间复杂度O(N^2)，额外空间复杂度O(1)");
-
-        int temp;
-        for (int i = 0; i < arr.length; i++) {
-            for (int j = 0; j < arr.length - i - 1; j++) {
+        int temp, len = arr.length;
+        boolean finish;  //冒泡排序的优化：提前退出冒泡循环的标志位,即在这一次比较中没有交换任何元素，这个数组就已经是有序的了
+        for (int i = 0; i < len; i++) {
+            finish = true;
+            for (int j = 0; j < len - i - 1; j++) {
                 if (arr[j] > arr[j + 1]) {
                     temp = arr[j];
                     arr[j] = arr[j + 1];
                     arr[j + 1] = temp;
+                    finish = false;
                 }
             }
+            if (finish) break;
         }
     }
 
@@ -62,8 +65,8 @@ public class 排序算法 {
                 "        一旦确定了正确位置j，\n" +
                 "        目标值target（即原始的arr[i]）就会被复制到这个位置。\n" +
                 "        与选择排序不同的是，插入排序将数据向右滑动，并且不会执行交换。");
-        int current;
-        for (int i = 0; i < arr.length - 1; i++) {
+        int current, len = arr.length;
+        for (int i = 0; i < len - 1; i++) {
             current = arr[i + 1];
             int preIndex = i;
             while (preIndex >= 0 && current < arr[preIndex]) {
@@ -77,10 +80,10 @@ public class 排序算法 {
     @Test
     public void selectionSort() {
         System.out.println("选择排序，每次从现有数据挑出一个最小的直接放在最前面，第二次再将剩余的数据进行排序，拿出最小的放在最前面，以此类推");
-        int minIndex, temp;
-        for (int i = 0; i < arr.length - 1; i++) {
+        int minIndex, temp, len = arr.length;
+        for (int i = 0; i < len - 1; i++) {
             minIndex = i;
-            for (int j = i + 1; j < arr.length; j++) {
+            for (int j = i + 1; j < len; j++) {
                 if (arr[j] < arr[minIndex]) { //找到最小的数
                     minIndex = j; //将最小数的索引保存
                 }
