@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 public class 排序算法 {
 
-    private int[] arr = {9, 2, 1, 3, 8, 1, 7, 0, 3, 5, 9};
+    private int[] arr = {2, 1, 3, 8, 1, 7, 0, 3, 5, 9};
 
     @Before
     public void printBefore() {
@@ -33,6 +33,7 @@ public class 排序算法 {
             }
             if (finish) break;
         }
+        //时间复杂度 n-1 + n-2 + ... + 1 = O(n ^ 2)
     }
 
     @Test
@@ -75,6 +76,15 @@ public class 排序算法 {
             }
             arr[preIndex + 1] = current;
         }
+        //最佳情况下： 数组就是有序的，此时while不用循环了，时间复杂度就是最外层的for循环了，就是O(n)
+        //最坏清空下：数组是有序的，但是是降序排列的，我们目的是升序，
+        //比如： 6 5 4 3 2 1
+        //当i = 0 while遍历1次 数组是5 6 4 3 2 1
+        //当i = 1 while遍历2次 数组是4 5 6 3 2 1
+        //当i = 2 while遍历3次 数组是3 4 5 6 2 1
+        //......
+        //当i = n - 2 while遍历n-1次 数组就是升序了
+        // 1 + 2 + 3 + ... + n - 1 = (n - 1) * n /2 = O(n^2)
     }
 
     @Test
@@ -95,6 +105,12 @@ public class 排序算法 {
             }
             // 执行完一次循环，当前索引 i 处的值为最小值，直到循环结束即可完成排序
         }
+        //两个for循环无论如何都是要执行的，所以不存在什么最好和最坏的情况
+        //当i=0时，j=1到n-1需要遍历n-1次
+        //当i=1时，j=2到n-1需要遍历n-2次
+        //...
+        //当i=n-2时，j=n-1到n-1需要遍历0次
+        // n-1 + n-2 + ... + 1 + 0 = O(n^2)
     }
 
     @Test
@@ -102,12 +118,13 @@ public class 排序算法 {
         System.out.println("希尔排序，");
         int len = arr.length, current, gap = len >>> 1;
         int num = 0;
-        while (gap > 0) {
+        while (gap > 0) {   //第一个while   A
             System.out.println(++num);
-            for (int i = gap; i < len; i++) {
+            //当gap=1时，就是最简单的插入排序了
+            for (int i = gap; i < len; i++) {   //  第一个for  B
                 current = arr[i];
                 int preIndex = i - gap;
-                while (preIndex >= 0 && arr[preIndex] > current) {
+                while (preIndex >= 0 && arr[preIndex] > current) {  //第二个while  C
                     arr[preIndex + gap] = arr[preIndex];
                     preIndex -= gap;
                 }
@@ -115,6 +132,30 @@ public class 排序算法 {
             }
             gap = gap >>> 1;
         }
+        //当gap = n/2时，for必须执行（n-1-n/2 + 1）=n/2次  最好情况下while只执行一次就退出了，此时BC执行了n/2次，最坏情况下也只需要执行1次（2个数组为一组进行插入排序）
+        //                             当i=n/2时 while执行1次
+        //                             当i=n/2 + 1时 while执行1次
+        //                             当i=n/2 + 2时 while执行1次
+        //                             ......
+        //                             当i=n-1时 while执行1次
+        //               此时BC执行n/2次
+        //当gap = n/4时，for必须执行（n-1-n/4 + 1）=3n/4次 最好情况下while只执行一次就退出了，此时BC执行了3n/4次，
+        //                             当i=n/4时      current=arr[n/4], preIndex = 0，preIndex依次是0，-n/4              while执行1次
+        //                                      ..........
+        //                             当i=2n/4时  current=arr[2n/4], preIndex = n/4，preIndex依次是n/4，0, -n/4                                  while执行2次
+        //                                      ..........
+        //                             当i=3n/4时      current=arr[3n/4], preIndex = 3n/4 - n/4= n/2，preIndex依次是n/2, n/4, 0, -n/4                    while执行3次
+        //                                      ..........
+        //                             当i=n-1时      current=arr[n - 1], preIndex = n - 1 - n/4= 3n/4 - 1，preIndex依次是3n/4 - 1,2n/4 - 1,n/4 - 1,-1   while执行3次
+        //               此时BC执行n/4 + n/4 * 2 + n/4 * 3 = (1 + 2 + 3)*n/4次
+        //当gap = n/8时，for必须执行（n-1-n/8 + 1）=7n/8次 最好情况下while只执行一次就退出了，此时BC执行了7n/8次，
+        //               此时BC执行(1 + 2 + ... + 7)*n/8次
+        //......
+        //当gap=1时，是最后一次while循环了（完全等同于插入排序了），for循环必须执行(n-1-1+1)=n-1次，最好情况下while只执行一次就退出了，此时BC执行了n-1次
+        //最好情况下：  n/2 +3n/4 + 7n/8 + ... + (n-1) =
+        //最坏情况下：n/2 + (1 + 2 + 3)*n/4 + (1 + 2 + ... + 7)*n/8 + ...... + (1 + 2 + ... + 2^())*n/
+
+        //假设一共需要t次二分gap，也就是2^t <= n;
     }
 
     @Test
