@@ -10,6 +10,11 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class ConcurrentHashMap<K,V> {
 
+    //主要用于存储具体键值对，其子类有：
+    //  ForwardingNode
+    //  TreeNode
+    //  TreeBin
+    //  ReservationNode
     static class Node<K,V> implements Map.Entry<K,V> {
         final int hash;
         final K key;
@@ -69,6 +74,7 @@ public class ConcurrentHashMap<K,V> {
             this.parent = parent;
         }
 
+        @Override
         Node<K,V> find(int h, Object k) {
             return findTreeNode(h, k, null);
         }
@@ -129,7 +135,9 @@ public class ConcurrentHashMap<K,V> {
         }
 
         private final void lockRoot() {
+            //尝试cas修改lockState状态改0为1
             if (!U.compareAndSwapInt(this, LOCKSTATE, 0, WRITER))
+                //如果cas更新失败
                 contendedLock(); // offload to separate method
         }
 
@@ -140,13 +148,22 @@ public class ConcurrentHashMap<K,V> {
         private final void contendedLock() {
             boolean waiting = false;
             for (int s;;) {
-                if (((s = lockState) & ~WAITER) == 0) {
+                //数据以补码方式存储 WAITER=2  正数的原码、反码、补码都是本身，都是0000 ... 0010
+                //~ 按位取反 ~2的补码就是1111 ... 1101是个负数   负数的补码=反码+1，反码就是1111 ... 1100，然后除符号位外按位取反得原码1000 ... 0011，-3
+                //~2=-3
+                //lockState的状态值有：
+                // 1 WRITER
+                // 2 WAITER ~2=1111 ... 1101，? & ~2=0 说明?只能是0或2
+                // 4 READER
+                if (((s = lockState) & ~WAITER) == 0) { //~2=-3
+                    //尝试cas更新lockState状态改为1
                     if (U.compareAndSwapInt(this, LOCKSTATE, s, WRITER)) {
                         if (waiting)
                             waiter = null;
                         return;
                     }
                 }
+                // ? & 0000 ... 0010 = 0
                 else if ((s & WAITER) == 0) {
                     if (U.compareAndSwapInt(this, LOCKSTATE, s, s | WAITER)) {
                         waiting = true;
@@ -158,6 +175,7 @@ public class ConcurrentHashMap<K,V> {
             }
         }
 
+        @Override
         final Node<K,V> find(int h, Object k) {
             if (k != null) {
                 for (Node<K,V> e = first; e != null; ) {

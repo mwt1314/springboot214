@@ -3,6 +3,9 @@ package unsafe;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * @author mawt
@@ -53,6 +56,40 @@ public class CASTest implements Runnable {
     }
 
     public static void main(String[] args) {
+        ConcurrentHashMap<Integer, Object> map = new ConcurrentHashMap<>();
+        CountDownLatch countDownLatch = new CountDownLatch(200);
+        for (int i = 0; i < 200; i++) {
+            final int I = i;
+            Thread thread = new Thread(() -> {
+                try {
+                    for (int j = I * 100; j < (2 * I * 100); j++) {
+                        map.put(j, j);
+                    }
+                } finally {
+                    countDownLatch.countDown();
+                }
+            });
+            thread.start();
+        }
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println(map.size());
+
+
+        System.out.println();
+        System.out.println(2 & (~2));
+        int x = ~2;
+        // 1  0000    0010
+        // 1  1111    1110
+        System.out.println(Integer.toBinaryString(-2));
+        System.out.println(x);
+        int a=2;
+        System.out.println(Integer.parseUnsignedInt("11111111111111111111111111111101", 10));
+        System.out.println(Integer.toBinaryString(~2));
+        System.out.println("a 非的结果是："+(~a));
         System.out.println(Integer.numberOfLeadingZeros(16));
         System.out.println(Integer.toBinaryString(Integer.numberOfLeadingZeros(16)));
         System.out.println(Integer.toBinaryString(resizeStamp(16)));
