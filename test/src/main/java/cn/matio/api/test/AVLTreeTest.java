@@ -1,67 +1,61 @@
 package cn.matio.api.test;
 
-import java.util.Random;
-
 /**
- * @author mawt
- * @description
- * @date 2020/6/2
+ * Java 语言: AVL树
+ *
+ * @author skywang
+ * @date 2013/11/07
  */
-public class AVLTest {
 
-    private static TreeNode root;
-
-    private static class TreeNode {
-        int val;
-        TreeNode left;
-        TreeNode right;
-        TreeNode parent;
-
-        TreeNode(int val, TreeNode parent) {
-            this.val = val;
-            this.parent = parent;
-        }
-
-        TreeNode(int val, TreeNode left, TreeNode right, TreeNode parent) {
-            this.val = val;
-            this.left = left;
-            this.right = right;
-            this.parent = parent;
-        }
-
-    }
+public class AVLTreeTest {
+    private static int arr[]= {3,2,1,4,5,6,7,16,15,14,13,12,11,10,8,9};
 
     public static void main(String[] args) {
-        Random random = new Random();
+        int i;
+        AVLTree<Integer> tree = new AVLTree<Integer>();
 
-        for (int i = 1; i <= 10; i++) {
-            buildTree(random.nextInt(100));
+        System.out.printf("== 依次添加: ");
+        for(i=0; i<arr.length; i++) {
+            System.out.printf("%d ", arr[i]);
+            tree.insert(arr[i]);
+            System.out.println("--------------我是分割线----------------------");
+            show(tree);
         }
-        //    printMid(root);
-        show(root);
+
+        /*System.out.printf("\n== 前序遍历: ");
+        tree.preOrder();
+
+        System.out.printf("\n== 中序遍历: ");
+        tree.inOrder();
+
+        System.out.printf("\n== 后序遍历: ");
+        tree.postOrder();
+        System.out.printf("\n");
+
+        System.out.printf("== 高度: %d\n", tree.height());
+        System.out.printf("== 最小值: %d\n", tree.minimum());
+        System.out.printf("== 最大值: %d\n", tree.maximum());
+        System.out.printf("== 树的详细信息: \n");
+        tree.print();
+
+        i = 8;
+        System.out.printf("\n== 删除根节点: %d", i);
+        tree.remove(i);
+
+        System.out.printf("\n== 高度: %d", tree.height());
+        System.out.printf("\n== 中序遍历: ");
+        tree.inOrder();
+        System.out.printf("\n== 树的详细信息: \n");
+        tree.print();
+
+        show(tree);*/
+
+        // 销毁二叉树
+        tree.destroy();
     }
 
-    private static void buildTree(int v) {
-        if (root != null) {
-            TreeNode parent = findParent(v);
-            if (parent != null) {
-                TreeNode node = new TreeNode(v, parent);
-                if (parent.val > v) parent.left = node;
-                else parent.right = node;
-            }
-        } else {
-            root = new TreeNode(v, null);
-        }
-    }
-
-    private static void printMid(TreeNode node) {
-        if (node == null) return;
-        printMid(node.left);
-        System.out.println(node.val);
-        printMid(node.right);
-    }
-
-    public static void show(TreeNode root) {
+    public static void show(AVLTree tree) {
+        AVLTree.AVLTreeNode root = tree.getmRoot();
         if (root == null) System.out.println("EMPTY!");
         // 得到树的深度
         int treeDepth = getTreeDepth(root);
@@ -97,15 +91,15 @@ public class AVLTest {
     }
 
     // 用于获得树的层数
-    public static int getTreeDepth(TreeNode root) {
+    public static int getTreeDepth(AVLTree.AVLTreeNode root) {
         return root == null ? 0 : (1 + Math.max(getTreeDepth(root.left), getTreeDepth(root.right)));
     }
 
-    private static void writeArray(TreeNode currNode, int rowIndex, int columnIndex, String[][] res, int treeDepth) {
+    private static void writeArray(AVLTree.AVLTreeNode currNode, int rowIndex, int columnIndex, String[][] res, int treeDepth) {
         // 保证输入的树不为空
         if (currNode == null) return;
         // 先将当前节点保存到二维数组中
-        res[rowIndex][columnIndex] = String.valueOf(currNode.val);
+        res[rowIndex][columnIndex] = String.valueOf(currNode.key);
 
         // 计算当前位于树的第几层
         int currLevel = ((rowIndex + 1) / 2);
@@ -126,21 +120,5 @@ public class AVLTest {
             writeArray(currNode.right, rowIndex + 2, columnIndex + gap * 2, res, treeDepth);
         }
     }
-
-    private static TreeNode findParent(int v) {
-        TreeNode node = root;
-        while (node != null) {
-            if (node.val == v) return null;
-            else if (node.val > v) {
-                if (node.left == null) return node;
-                node = node.left;
-            } else {
-                if (node.right == null) return node;
-                node = node.right;
-            }
-        }
-        return null;
-    }
-
 
 }
