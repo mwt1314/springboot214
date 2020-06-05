@@ -47,6 +47,7 @@ public class WaitNotify {
                 flag = false;
                 SleepUtils.second(5);
             }
+        //    Thread.yield();
             // 再次加锁
             synchronized (LOCK) {
                 System.out.println(Thread.currentThread() + " hold lock again. sleep @ " + new SimpleDateFormat("HH:mm:ss").format(new Date()));
